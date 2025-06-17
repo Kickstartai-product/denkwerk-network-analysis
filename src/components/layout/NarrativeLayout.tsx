@@ -30,6 +30,16 @@ export type CentralityMetric =
 
 const brandColorRgb = "0, 153, 168";
 
+// Animation timing configuration
+const ANIMATION_DURATION = 1000; // 1 second in milliseconds
+
+const fadeInAnimation = `
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+`;
+
 export const NarrativeLayout = () => {
   const introRef = useRef<HTMLDivElement>(null);
   const mainContentRef = useRef<HTMLDivElement>(null);
@@ -48,6 +58,7 @@ export const NarrativeLayout = () => {
   const [edgeDisplayMode, setEdgeDisplayMode] = useState<EdgeDisplayMode>('all');
   const [rawCountThreshold] = useState<number>(6);
   const [threatImpactWeights] = useState<ThreatImpactWeights>(DEFAULT_THREAT_IMPACT_WEIGHTS);
+  const [mounted, setMounted] = useState(false);
 
   // --- NEW: Intersection Observer to track main content visibility ---
   useEffect(() => {
@@ -70,6 +81,10 @@ export const NarrativeLayout = () => {
         observer.unobserve(currentRef);
       }
     };
+  }, []);
+
+  useEffect(() => {
+    setMounted(true);
   }, []);
 
 
@@ -130,9 +145,14 @@ export const NarrativeLayout = () => {
     }
   };
 
+  const getAnimationStyle = (delay: number) => ({
+    opacity: 0,
+    animation: mounted ? `fadeIn ${ANIMATION_DURATION}ms ease-out forwards ${delay}ms` : 'none'
+  });
+
   return (
-    
     <div className="w-full h-screen overflow-y-scroll scroll-snap-type-y-mandatory">
+      <style>{fadeInAnimation}</style>
       <ScreenAlert />
       {/* --- MODIFIED: Header buttons with morphing behavior --- */}
       <div className="fixed top-4 left-4 md:top-8 md:left-8 z-50">
@@ -186,61 +206,60 @@ export const NarrativeLayout = () => {
         </button>
       </div>
 
-      {/* --- ENHANCED NARRATIVE SECTION (Unchanged) --- */}
+      {/* --- ENHANCED NARRATIVE SECTION --- */}
       <section
         ref={introRef}
-        className="relative w-full h-screen bg-slate-50 scroll-snap-align-start overflow-hidden flex flex-col"
+        className="relative w-full h-screen bg-slate-50 scroll-snap-align-start overflow-hidden"
       >
-        <div className="relative w-full h-[200px] md:h-[250px] flex-shrink-0">
-          <img
-            src={`${basePath}nl_from_above.jpg`}
-            alt="Netherlands by night"
-            className="w-full h-full object-cover"
-          />
-          <div className="absolute bottom-2 left-2 text-white text-xs bg-black/50 px-2 py-1 rounded">
-            Foto: ©ESA/NASA - André Kuipers
+        <div className="w-full h-full overflow-y-auto">
+          <div className="relative w-full h-[200px] md:h-[250px] flex-shrink-0">
+            <img
+              src={`${basePath}nl_from_above.jpg`}
+              alt="Netherlands by night"
+              className="w-full h-full object-cover"
+            />
+            <div className="absolute bottom-2 left-2 text-white text-xs bg-black/50 px-2 py-1 rounded">
+              Foto: ©ESA/NASA - André Kuipers
+            </div>
+            <div className="absolute inset-0 bg-black/60 flex flex-col justify-center items-center text-white text-center px-4">
+              <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4" style={getAnimationStyle(0)}>
+                Knooppuntenanalyse Dreigingen
+              </h1>
+              <p className="text-base md:text-lg max-w-3xl" style={getAnimationStyle(200)}>Een nieuw perspectief op de nationale veiligheid</p>
+            </div>
           </div>
-          <div className="absolute inset-0 bg-black/60 flex flex-col justify-center items-center text-white text-center px-4">
-            <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4">
-              Knooppuntenanalyse Dreigingen
-            </h1>
-            <p className="text-base md:text-lg max-w-3xl">Een nieuw perspectief op de nationale veiligheid</p>
-          </div>
-        </div>
-        
-        {/* MODIFICATION: Removed fixed height, using flex-1 to fill available space */}
-        <div className="flex-1 overflow-y-auto">
+          
           <div className="p-4 sm:p-6 md:p-8">
             <div className="max-w-4xl mx-auto space-y-8">
 
               {/* Context Section */}
-              <div className="relative pt-8">
+              <div className="relative pt-8" style={getAnimationStyle(600)}>
                 <div className="flex items-center justify-center mb-8">
                   <div className="flex-1 h-[1.5px] bg-gray-300"></div>
                   <h2 className="text-xl md:text-2xl font-semibold text-[rgb(0,153,168)] px-4 sm:px-6 text-center">Een veranderende wereld</h2>
                   <div className="flex-1 h-[1.5px] bg-gray-300"></div>
                 </div>
                  <div className="space-y-6 mb-12">
-                  <p className="text-base md:text-lg text-gray-700 leading-relaxed text-left">
+                  <p className="text-base md:text-lg text-gray-700 leading-relaxed text-left" style={getAnimationStyle(700)}>
                De uitdagingen waar Nederland voor staat zijn niet alleen groter, maar ook complexer en meer verweven dan we de afgelopen decennia gewend zijn. Dreigingen zijn geen op zichzelf staande incidenten meer, maar verweven ketens van oorzaak en gevolg. De wereld om ons heen verandert in hoog tempo: geopolitieke machtsverschuiving, klimaatdruk en de digitale revolutie.</p>
-                  <p className="text-base md:text-lg text-gray-700 leading-relaxed text-left">
+                  <p className="text-base md:text-lg text-gray-700 leading-relaxed text-left" style={getAnimationStyle(800)}>
 Deze trends maken dat <strong className="text-[rgb(0,153,168)]">dreigingen elkaar versterken en versnellen</strong>. Wat begint als een lokale storing, een cyberaanval, overstroming of handelsblokkade, kan uitgroeien tot een keten van afhankelijkheden. Een lokaal incident kan zich snel verspreiden en uitgroeien tot een crisis die meerdere sectoren raakt. De COVID-pandemie toonde dit pijnlijk aan: van gezondheidscrisis naar economische recessie, sociale spanningen en politieke polarisatie.                  </p>
                 </div>
               </div>
 
               {/* Risk Analysis Section */}
-              <div className="relative pt-8">
+              <div className="relative pt-8" style={getAnimationStyle(900)}>
                 <div className="flex items-center justify-center mb-8">
                   <div className="flex-1 h-[1.5px] bg-gray-300"></div>
                   <h2 className="text-xl md:text-2xl font-semibold text-[rgb(0,153,168)] px-4 sm:px-6 text-center">Van traditioneel naar nieuw denken</h2>
                   <div className="flex-1 h-[1.5px] bg-gray-300"></div>
                 </div>
                  <div className="space-y-6 mb-12">
-                  <p className="text-base md:text-lg text-gray-700 leading-relaxed text-left">
-De klassieke benadering van risico's kijkt naar waarschijnlijkheid en impact. Deze methode werkt goed voor losstaande dreigingen, maar in onze verweven wereld is een aanvullende dimensie nodig: <strong style={{ color: 'rgb(0, 153, 168)' }}>verwevenheid</strong>. Deze derde dimensie brengt in kaart hoe dreigingen elkaar beïnvloeden en versterken. Het gaat om het identificeren van knooppunten; dreigingen die als centrale schakels werken voor andere risico’s. Door deze verbindingen systematisch te identificeren, kunnen we effectiever prioriteren.
+                  <p className="text-base md:text-lg text-gray-700 leading-relaxed text-left" style={getAnimationStyle(1000)}>
+De klassieke benadering van risico's kijkt naar waarschijnlijkheid en impact. Deze methode werkt goed voor losstaande dreigingen, maar in onze verweven wereld is een aanvullende dimensie nodig: <strong style={{ color: 'rgb(0, 153, 168)' }}>verwevenheid</strong>. Deze derde dimensie brengt in kaart hoe dreigingen elkaar beïnvloeden en versterken. Het gaat om het identificeren van knooppunten; dreigingen die als centrale schakels werken voor andere risico's. Door deze verbindingen systematisch te identificeren, kunnen we effectiever prioriteren.
                                 </p>
                 </div>
-                <Card className="border border-gray-200/60 bg-white/50 backdrop-blur-sm shadow-sm rounded-lg overflow-hidden">
+                <Card className="border border-gray-200/60 bg-white/50 backdrop-blur-sm shadow-sm rounded-lg overflow-hidden" style={getAnimationStyle(1100)}>
                   <div className="p-4 sm:p-6 max-w-full overflow-x-auto">
                     <TraditionalRiskMatrix />
                   </div>
@@ -253,7 +272,7 @@ De klassieke benadering van risico's kijkt naar waarschijnlijkheid en impact. De
               </div>
 
               {/* Section: Verbanden tussen dreigingen */}
-              <div className="relative pt-8 mt-12">
+              <div className="relative pt-8 mt-12" style={getAnimationStyle(1200)}>
                 <div className="flex items-center justify-center mb-8">
                     <div className="flex-1 h-[1.5px] bg-gray-300"></div>
                     <h2 className="text-xl md:text-2xl font-semibold text-[rgb(0,153,168)] px-4 sm:px-6 text-center">Verbanden tussen dreigingen</h2>
@@ -261,7 +280,7 @@ De klassieke benadering van risico's kijkt naar waarschijnlijkheid en impact. De
                 </div>
                 <div className="space-y-6">
                     <p className="text-base md:text-lg text-gray-700 leading-relaxed text-left">
-Om een netwerk van dreigingen te creëren, moeten we eerst de verbanden tussen dreigingen vaststellen. Gezien het dreigingslandschap breed is, is er niet een enkele expert die wij kunnen informeren over verbanden tussen allerlei dreigingen. Daarom richten wij ons op de ‘wijsheid van de massa’. Met behulp van AI-taalmodellen (LLMs) hebben we duizenden beleidsdocumenten en onderzoeksrapporten geanalyseerd om de verborgen verbanden tussen diverse dreigingen bloot te leggen. Een taalmodel kan, zoals het onderstaande voorbeeld illustreert, de contextuele relaties identificeren die experts in de tekst leggen.                    </p>
+Om een netwerk van dreigingen te creëren, moeten we eerst de verbanden tussen dreigingen vaststellen. Gezien het dreigingslandschap breed is, is er niet een enkele expert die wij kunnen informeren over verbanden tussen allerlei dreigingen. Daarom richten wij ons op de 'wijsheid van de massa'. Met behulp van AI-taalmodellen (LLMs) hebben we duizenden beleidsdocumenten en onderzoeksrapporten geanalyseerd om de verborgen verbanden tussen diverse dreigingen bloot te leggen. Een taalmodel kan, zoals het onderstaande voorbeeld illustreert, de contextuele relaties identificeren die experts in de tekst leggen.                    </p>
                     <Card className="border border-gray-200/60 bg-white/50 backdrop-blur-sm shadow-sm rounded-lg overflow-hidden">
                         <div className="p-4 sm:p-6">
                             <TransformerAttentionVisualizer />
@@ -321,6 +340,7 @@ De dreigingen in de visualisatie zijn verdeeld over zes categorieën (zoals econ
             onClick={() => handleScrollTo(mainContentRef)}
             className="flex flex-col items-center text-gray-500 hover:text-[rgb(0,153,168)] transition-colors animate-subtle-glow-pulse bg-white/90 backdrop-blur-sm rounded-full p-4 shadow-lg"
             aria-label="Scroll to main content"
+            style={getAnimationStyle(1200)}
           >
             <span className="mb-1 text-sm font-medium text-[rgb(0,153,168)]">Verken het Netwerk</span>
             <ChevronsDown className="w-8 h-8" />
