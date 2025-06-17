@@ -20,6 +20,8 @@ const ClimateImpactGraph: React.FC = () => {
   const [showArrows, setShowArrows] = useState(false);
   const [isInView, setIsInView] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const [path, setPath] = useState('');
+
 
   // Denkwerk brand color
   const brandColor = 'rgb(0, 153, 168)';
@@ -66,6 +68,14 @@ const ClimateImpactGraph: React.FC = () => {
       clearTimeout(nodeTimer);
     };
   }, [isInView]);
+  
+  // A common fix for Safari is to use an absolute URL for the marker reference.
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setPath(window.location.href);
+    }
+  }, []);
+
 
   const { nodes, edges } = useMemo(() => {
     const width = 500;
@@ -126,7 +136,7 @@ const ClimateImpactGraph: React.FC = () => {
       <svg 
         viewBox="0 0 500 400" 
         className="w-full h-80 drop-shadow-lg"
-        aria-label="Climate impact relationship diagram showing heat/drought effects"
+        aria-label="A diagram showing the impacts of climate change, specifically heat and drought."
         preserveAspectRatio="xMidYMid meet"
       >
         <defs>
@@ -141,20 +151,22 @@ const ClimateImpactGraph: React.FC = () => {
             <stop offset="100%" stopColor={brandColor} />
           </radialGradient>
 
-          {/* Simple arrow marker */}
+          {/* The marker has been adjusted to fix the rendering issues.
+            - `viewBox` is set to "0 0 10 10".
+            - `refX` and `refY` are set to 5, which is the center of the viewBox.
+            - `markerWidth` and `markerHeight` are adjusted to 5.
+            - `orient` is set to "auto-start-reverse" for proper rotation.
+          */}
           <marker
             id="arrow"
-            viewBox="0 0 12 12"
-            refX="10" 
-            refY="6"
-            markerWidth="8" 
-            markerHeight="8"
-            orient="auto"
-          >
-            <path 
-              d="M2,2 L2,10 L10,6 z" 
-              fill={brandColor}
-            />
+            viewBox="0 0 10 10"
+            refX="5"
+            refY="5"
+            markerWidth="5"
+            markerHeight="5"
+            orient="auto-start-reverse"
+            fill={brandColor}>
+            <path d="M 0 0 L 10 5 L 0 10 z" />
           </marker>
         </defs>
 
@@ -166,8 +178,13 @@ const ClimateImpactGraph: React.FC = () => {
           const unitDy = dy / edge.length;
           const startX = edge.from.x + unitDx * edge.from.radius;
           const startY = edge.from.y + unitDy * edge.from.radius;
-          const endX = edge.to.x - unitDx * (edge.to.radius + 8);
-          const endY = edge.to.y - unitDy * (edge.to.radius + 8);
+          
+          // Back up the arrow slightly so the tip doesn't enter the circle.
+          // The offset is added to the radius to shorten the line.
+          const arrowTipOffset = 5;
+          const endX = edge.to.x - unitDx * (edge.to.radius + arrowTipOffset);
+          const endY = edge.to.y - unitDy * (edge.to.radius + arrowTipOffset);
+
           const lineLength = Math.sqrt(Math.pow(endX - startX, 2) + Math.pow(endY - startY, 2));
 
           return (
@@ -179,7 +196,10 @@ const ClimateImpactGraph: React.FC = () => {
               y2={endY}
               stroke={brandColor}
               strokeWidth="4"
-              markerEnd={showArrows ? "url(#arrow)" : "none"}
+              /*
+                The marker-end URL now uses the full path to avoid issues with Safari.
+              */
+              markerEnd={showArrows ? `url(${path}#arrow)` : "none"}
               strokeDasharray={lineLength}
               strokeDashoffset={startAnimation ? 0 : lineLength}
               style={{ 

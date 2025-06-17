@@ -21,17 +21,43 @@ const NodeSelector = ({
   onSelectNode,
   placeholder = "Select a node..."
 }: NodeSelectorProps) => {
-  // Safety check - ensure we have an array of nodes
   const safeNodes = Array.isArray(nodes) ? nodes : [];
-  
-  // Sort nodes alphabetically by label
-  const sortedNodes = React.useMemo(() => {
-    return [...safeNodes].sort((a, b) => 
-      (a.label || '').localeCompare(b.label || '')
-    );
-  }, [safeNodes]);
 
-  // Handle selection change
+  const selectedNodeLabel = React.useMemo(() => {
+    const selected = safeNodes.find(node => node.id === selectedNodeId);
+    return selected ? selected.label : null;
+  }, [safeNodes, selectedNodeId]);
+
+  /**
+   * NEW: This memoized value computes the display label.
+   * If the full label is longer than 50 characters, it truncates the string
+   * at the last space before the 47-character mark to avoid cutting off words.
+   */
+  const displayLabel = React.useMemo(() => {
+    if (!selectedNodeLabel) {
+      return null;
+    }
+
+    const maxLength = 50;
+    const gracefulCutoff = 47;
+
+    // If the label is not too long, return it as is.
+    if (selectedNodeLabel.length <= maxLength) {
+      return selectedNodeLabel;
+    }
+
+    // Find the last space within the "graceful cutoff" limit.
+    const substring = selectedNodeLabel.substring(0, gracefulCutoff);
+    const lastSpaceIndex = substring.lastIndexOf(' ');
+
+    // If a space is found, cut there. If not (e.g., a very long first word),
+    // perform a hard cut at the graceful cutoff length.
+    const cutoffIndex = lastSpaceIndex > 0 ? lastSpaceIndex : gracefulCutoff;
+
+    return `${selectedNodeLabel.substring(0, cutoffIndex)}...`;
+
+  }, [selectedNodeLabel]);
+
   const handleValueChange = (value: string) => {
     onSelectNode(value);
   };
@@ -42,11 +68,13 @@ const NodeSelector = ({
       onValueChange={handleValueChange}
     >
       <SelectTrigger className="w-full">
-        <SelectValue placeholder={placeholder} />
+        <SelectValue placeholder={placeholder}>
+          {displayLabel}
+        </SelectValue>
       </SelectTrigger>
       <SelectContent>
-        {sortedNodes.length > 0 ? (
-          sortedNodes.map((node) => (
+        {safeNodes.length > 0 ? (
+          safeNodes.map((node) => (
             <SelectItem key={node.id} value={node.id}>
               {node.label}
             </SelectItem>

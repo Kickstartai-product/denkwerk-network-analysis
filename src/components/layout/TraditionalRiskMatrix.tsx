@@ -22,8 +22,8 @@ const TraditionalRiskMatrix = () => {
         <button
           onClick={() => setShowNew(false)}
           className={`px-4 py-2 rounded-lg transition-all font-medium ${
-            !showNew 
-              ? 'bg-[rgb(0,153,168)] text-white shadow-md scale-105' 
+            !showNew
+              ? 'bg-[rgb(0,153,168)] text-white shadow-md scale-105'
               : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
           }`}
         >
@@ -33,8 +33,8 @@ const TraditionalRiskMatrix = () => {
         <button
           onClick={() => setShowNew(true)}
           className={`px-4 py-2 rounded-lg transition-all font-medium ${
-            showNew 
-              ? 'bg-[rgb(0,153,168)] text-white shadow-md scale-105' 
+            showNew
+              ? 'bg-[rgb(0,153,168)] text-white shadow-md scale-105'
               : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
           }`}
         >
@@ -54,7 +54,7 @@ const TraditionalRiskMatrix = () => {
             </defs>
             <rect width="100%" height="100%" fill="url(#gridMatrix)" />
           </svg>
-          
+
           {/* Axes labels */}
           <div className="absolute bottom-1 left-1/2 transform -translate-x-1/2 text-xs font-medium text-gray-500">
             Waarschijnlijkheid →
@@ -68,32 +68,41 @@ const TraditionalRiskMatrix = () => {
             <div
               key={index}
               className="absolute transform -translate-x-1/2 -translate-y-1/2"
-              style={{ 
-                left: `${risk.x}%`, 
+              style={{
+                left: `${risk.x}%`,
                 bottom: `${risk.y}%`,
                 transition: 'left 0.5s ease-in-out, bottom 0.5s ease-in-out'
               }}
             >
-              <div 
+              <div
                 className={`
                   rounded-full bg-[rgb(0,153,168)] shadow-lg border-2 border-white/50
                   transition-all duration-500 ease-in-out
                   ${showNew ? risk.newSize : 'w-3.5 h-3.5'}
-                `} 
+                `}
               />
               <div className="absolute top-full mt-2 left-1/2 transform -translate-x-1/2 text-gray-600 text-xs font-medium whitespace-nowrap z-10 pointer-events-none">
                 {risk.name}
               </div>
             </div>
           ))}
-          
+
           {/* Risk zones (subtle text) */}
           <div className="absolute bottom-1 left-1 text-xs font-medium text-gray-400">Laag risico</div>
           <div className="absolute top-1 right-1 text-xs font-medium text-gray-400">Hoog risico</div>
 
-          {/* New approach label */}
-          <div className={`absolute top-3 left-3 bg-white/80 backdrop-blur-sm text-[rgb(0,153,168)] px-3 py-1 rounded-full text-xs font-bold shadow-md border border-slate-200 transition-all duration-300 ${showNew ? 'opacity-100 scale-100' : 'opacity-0 scale-90'}`}>
-            + Verwevenheid
+          {/* --- Legend for New Approach --- */}
+          <div className={`absolute top-3 left-3 bg-white/80 backdrop-blur-sm p-2 rounded-lg shadow-md border border-slate-200 transition-all duration-300 ease-in-out ${showNew ? 'opacity-100 scale-100' : 'opacity-0 scale-90 pointer-events-none'}`}>
+            <div className="text-center text-xs font-bold text-gray-700 mb-1">Verwevenheid</div>
+            <div className="flex items-center justify-center gap-2">
+              <span className="text-xs text-gray-500">Laag</span>
+              <div className="flex items-center gap-1.5">
+                <div className="w-2 h-2 rounded-full bg-[rgb(0,153,168)]/70"></div>
+                <div className="w-3 h-3 rounded-full bg-[rgb(0,153,168)]/85"></div>
+                <div className="w-4 h-4 rounded-full bg-[rgb(0,153,168)]"></div>
+              </div>
+              <span className="text-xs text-gray-500">Hoog</span>
+            </div>
           </div>
         </div>
       </div>
