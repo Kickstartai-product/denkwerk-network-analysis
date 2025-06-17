@@ -40,6 +40,31 @@ const fadeInAnimation = `
   }
 `;
 
+// --- MODIFIED: Simplified and separated animations for the button ---
+const buttonAnimations = `
+  @keyframes buttonFadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 0.85; /* <-- CHANGED: Match the starting opacity of the glow animation */
+      transform: translateY(0px);
+    }
+  }
+
+  @keyframes subtleGlowPulse {
+    0%, 100% { 
+      opacity: 0.85; 
+      filter: drop-shadow(0 0 2px rgba(${brandColorRgb}, 0.2));
+    }
+    50% { 
+      opacity: 1; 
+      filter: drop-shadow(0 0 8px rgba(${brandColorRgb}, 0.5));
+    }
+  }
+`;
+
 export const NarrativeLayout = () => {
   const introRef = useRef<HTMLDivElement>(null);
   const mainContentRef = useRef<HTMLDivElement>(null);
@@ -152,7 +177,10 @@ export const NarrativeLayout = () => {
 
   return (
     <div className="w-full h-screen overflow-y-scroll scroll-snap-type-y-mandatory">
-      <style>{fadeInAnimation}</style>
+      <style>{`
+        ${fadeInAnimation}
+        ${buttonAnimations}
+      `}</style>
       <ScreenAlert />
       {/* --- MODIFIED: Header buttons with morphing behavior --- */}
       <div className="fixed top-4 left-4 md:top-8 md:left-8 z-50">
@@ -338,9 +366,14 @@ De dreigingen in de visualisatie zijn verdeeld over zes categorieën (zoals econ
         <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10">
           <button
             onClick={() => handleScrollTo(mainContentRef)}
-            className="flex flex-col items-center text-gray-500 hover:text-[rgb(0,153,168)] transition-colors animate-subtle-glow-pulse bg-white/90 backdrop-blur-sm rounded-full p-4 shadow-lg"
+            className="flex flex-col items-center text-gray-500 hover:text-[rgb(0,153,168)] transition-colors bg-white/90 backdrop-blur-sm rounded-full p-4 shadow-lg"
             aria-label="Scroll to main content"
-            style={getAnimationStyle(1200)}
+            style={{
+              opacity: 0, // Start invisible, animation will take over
+              animation: mounted 
+                ? `buttonFadeIn 0.8s ease-out 1.2s forwards, subtleGlowPulse 3s ease-in-out 2s infinite` 
+                : 'none',
+            }}
           >
             <span className="mb-1 text-sm font-medium text-[rgb(0,153,168)]">Verken het Netwerk</span>
             <ChevronsDown className="w-8 h-8" />
@@ -369,11 +402,8 @@ De dreigingen in de visualisatie zijn verdeeld over zes categorieën (zoals econ
       <style>{`
         .scroll-snap-type-y-mandatory { scroll-snap-type: y mandatory; }
         .scroll-snap-align-start { scroll-snap-align: start; }
-        @keyframes subtle-glow-pulse {
-          0%, 100% { opacity: 0.85; filter: drop-shadow(0 0 1px rgba(${brandColorRgb}, 0.1)); }
-          50% { opacity: 1; filter: drop-shadow(0 0 6px rgba(${brandColorRgb}, 0.4)); }
-        }
-        .animate-subtle-glow-pulse { animation: subtle-glow-pulse 3s infinite ease-in-out; }
+        ${fadeInAnimation}
+        ${buttonAnimations}
       `}</style>
     </div>
   );
