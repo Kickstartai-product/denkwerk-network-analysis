@@ -1,6 +1,6 @@
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ListOrdered, ArrowBigRight, BookText, Move, ShieldAlert } from "lucide-react";
+import { ListOrdered, ArrowBigRight, BookText, Move, ShieldAlert, HelpCircle } from "lucide-react";
 import { useState, useEffect, useRef, useMemo } from 'react';
 import GraphChart, { GraphChartRef } from './GraphChart';
 import NodeSelector from './NodeSelector';
@@ -12,6 +12,8 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { Separator } from "@/components/ui/separator";
 import ThreatTable from './ThreatTable';
 import { shortNodeDescriptions, threatImpacts } from './shortNodeDescriptions';
+// Import the tutorial components
+import TutorialOverlay, { useTutorial } from './TutorialOverlay';
 
 interface MainContentProps {
   nodes: Node[];
@@ -89,6 +91,15 @@ export const MainContent = ({
   const [edgeWeightCutoff] = useState<number>(0.5);
   const [useWeightBasedEdgeSize] = useState<boolean>(true);
 
+  // Initialize tutorial hook
+  const {
+    tutorialStep,
+    startTutorial,
+    nextTutorialStep,
+    closeTutorial,
+    autoAdvanceFromNodeSelection,
+  } = useTutorial();
+
   const selectedNode = selectedNodeId
     ? nodes.find(n => n.id === selectedNodeId) || null
     : null;
@@ -102,6 +113,8 @@ export const MainContent = ({
     if (nodeId && window.innerWidth < 768) {
       setShowPanel(true);
     }
+    // Auto-advance tutorial when a node is selected during tutorial
+    autoAdvanceFromNodeSelection(nodeId);
   };
 
   const handleEdgeSelect = (edge: Edge | null) => {
@@ -163,7 +176,12 @@ export const MainContent = ({
 
   return (
   <div className="relative w-full h-full">
-      <div className="absolute inset-0 w-full h-full">
+      {/* Graph Container - Add ID for tutorial targeting */}
+      <div id="graph-container" className="absolute inset-0 w-full h-full">
+      <div 
+        id="graph-visual-area" 
+        className="absolute top-0 left-0 h-full w-full md:w-3/5 lg:w-2/3"
+      />
       <GraphChart
         ref={graphRef}
         nodes={filteredNodes}
@@ -188,9 +206,8 @@ export const MainContent = ({
         <ColorLegend />
       </div>
 
-      {/* --- START: MODIFIED TOOLTIP/SHEET SECTION --- */}
+      {/* Top controls with Tutorial button */}
       <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-10 flex items-center space-x-2">
-        {/* Note: The first empty/broken Sheet and Tooltip block was removed. */}
         <div className="bg-background/70 backdrop-blur-md p-2 rounded-lg shadow-lg">
           <Sheet>
             <TooltipProvider>
@@ -213,8 +230,30 @@ export const MainContent = ({
             </SheetContent>
           </Sheet>
         </div>
+
+        {/* Tutorial Button */}
+        <div className="bg-background/70 backdrop-blur-md p-2 rounded-lg shadow-lg">
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="gap-1 px-3" 
+                  onClick={startTutorial}
+                  disabled={loading || !!error || nodes.length === 0}
+                >
+                  <HelpCircle className="h-4 w-4" />
+                  <span>Gids</span>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Start interactieve gids</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </div>
       </div>
-       {/* --- END: MODIFIED TOOLTIP/SHEET SECTION --- */}
 
        {edgeWeightCutoff > 0.5 && (
          <div className="absolute top-16 left-1/2 transform -translate-x-1/2 z-10">
@@ -239,12 +278,15 @@ export const MainContent = ({
               <h4 className="text-sm font-medium mb-2">Selecteer Dreiging</h4>
               <div className="flex gap-2 items-center">
                 <div className="flex-1">
-                  <NodeSelector
-                    nodes={sortedNodesForSelector}
-                    selectedNodeId={selectedNodeId}
-                    onSelectNode={handleNodeSelect}
-                    placeholder="Selecteer een dreiging..."
-                  />
+                  {/* Add ID for tutorial targeting */}
+                  <div id="node-selector">
+                    <NodeSelector
+                      nodes={sortedNodesForSelector}
+                      selectedNodeId={selectedNodeId}
+                      onSelectNode={handleNodeSelect}
+                      placeholder="Selecteer een dreiging..."
+                    />
+                  </div>
                 </div>
               </div>
               <p className="text-xs text-muted-foreground mt-1">
@@ -268,7 +310,8 @@ export const MainContent = ({
               {selectedNode && (
                 <div className="flex flex-col h-full overflow-hidden">
                   <div className="flex-shrink-0">
-                    <div className="p-4 bg-muted/20 rounded-lg border border-border/20">
+                    {/* Add ID for tutorial targeting */}
+                    <div id="centrality-info" className="p-4 bg-muted/20 rounded-lg border border-border/20">
                       <p className="font-semibold text-lg text-primary mb-4">{shortNodeDescriptions[selectedNode.id] || selectedNode.label}</p>
 
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
@@ -298,6 +341,8 @@ export const MainContent = ({
                   </div>
 
                   <div className="mt-4 flex-1 flex flex-col overflow-hidden">
+                    {/* Add ID for tutorial targeting */}
+                    <div id="citations-container" className="mt-4 flex-1 flex flex-col overflow-hidden">
                     <h5 className="text-sm font-medium mb-2 flex-shrink-0">Representatieve citaten</h5>
                     <div className="space-y-3 overflow-y-auto pr-2 flex-1">
                       {selectedNode.citaten && selectedNode.citaten.length > 0 ? (
@@ -329,6 +374,7 @@ export const MainContent = ({
                       )}
                     </div>
                   </div>
+                </div>
                 </div>
               )}
 
@@ -410,6 +456,14 @@ export const MainContent = ({
           </div>
         </Card>
       </div>
+
+      {/* Tutorial Overlay Component */}
+      <TutorialOverlay
+        step={tutorialStep}
+        onNext={nextTutorialStep}
+        onClose={closeTutorial}
+        selectedNodeId={selectedNodeId}
+      />
     </div>
   );
 };
