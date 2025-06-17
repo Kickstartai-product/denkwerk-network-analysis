@@ -420,10 +420,6 @@ const GraphChart = forwardRef<GraphChartRef, GraphChartProps>(
       }
     };
 
-    useEffect(() => {
-      console.log('Selections changed:', selections);
-    }, [selections]);
-
     if (loading) return <div className="flex h-full items-center justify-center"><div className="animate-pulse text-gray-500">Loading graph data...</div></div>;
     if (error) return <div className="flex h-full items-center justify-center"><div className="text-red-500">Error loading graph: {error}</div></div>;
 

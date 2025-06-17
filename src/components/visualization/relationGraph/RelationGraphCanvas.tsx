@@ -77,7 +77,7 @@ edges: Edge[];
 }
 
 export const RelationGraphCanvas = ({ nodes, edges }: RelationGraphCanvasProps) => {
-const [selectedThreat, setSelectedThreat] = useState<string>('');
+const [selectedThreat, setSelectedThreat] = useState<string>('polarisatie rond complottheorieën');
 const graphRef = useRef<GraphCanvasRef | null>(null);
 
 // Handle undefined nodes/edges

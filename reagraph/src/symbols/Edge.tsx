@@ -205,12 +205,19 @@ export const Edge: FC<EdgeProps> = ({
   }, [from.position, to.position, labelOffset, labelPlacement, curved, curve]);
 
   // Selections are now driven by the central `selections` array in the store.
-  const isSelected = useStore(state => state.selections?.includes(id));
-  const hasSelection = useStore(state => state.selections?.length > 0);
+  const selections = useStore(state => state.selections);
+  const isSelected = useMemo(() => selections?.includes(id), [selections, id]);
+  const hasSelection = useMemo(() => selections?.length > 0, [selections]);
 
   const selectionOpacity = useMemo(() => {
-    // If any node or edge is selected, fade out non-selected items.
     if (hasSelection) {
+      // A node is a string that does not have the substring '|||'.
+      const selectedNode = selections.find(s => !s.includes('|||'));
+      if (selectedNode) {
+        // If the edge `id` contains the `selectedNode` string, make it opaque.
+        return id.includes(selectedNode) ? 1 : 0.1;
+      }
+      // Fallback for edge selections
       return isSelected ? 1 : 0.1;
     } else {
       // When no selections, calculate opacity based on weight.
@@ -224,7 +231,7 @@ export const Edge: FC<EdgeProps> = ({
         default: return theme.edge.opacity;
       }
     }
-  }, [hasSelection, isSelected, weight, theme.edge.opacity]);
+  }, [hasSelection, isSelected, selections, id, weight, theme.edge.opacity]);
 
   const [{ labelPosition }] = useSpring(() => ({
     from: { labelPosition: center ? [center.x, center.y, center.z] : [0, 0, 0] },

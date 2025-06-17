@@ -11,7 +11,7 @@ import { Sheet, SheetTrigger, SheetContent } from "@/components/ui/sheet";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Separator } from "@/components/ui/separator";
 import ThreatTable from './ThreatTable';
-import { shortNodeDescriptions, threatImpacts } from './shortNodeDescriptions'; // <-- IMPORTED
+import { shortNodeDescriptions, threatImpacts } from './shortNodeDescriptions';
 
 interface MainContentProps {
   nodes: Node[];
@@ -46,7 +46,6 @@ const getCentralityTier = (node: Node | null, allNodes: Node[]): string => {
   const currentValue = getCentralityValue(node, metric);
   if (currentValue === null) return "N.v.t.";
 
-  // 1. Get all non-null values for the metric and sort them
   const allValues = allNodes
     .map(n => getCentralityValue(n, metric))
     .filter((v): v is number => v !== null)
@@ -54,13 +53,9 @@ const getCentralityTier = (node: Node | null, allNodes: Node[]): string => {
 
   if (allValues.length === 0) return "N.v.t.";
 
-  // 2. Find the rank of the current node's value
   const rank = allValues.indexOf(currentValue);
-
-  // 3. Calculate percentile
   const percentile = (rank / (allValues.length -1)) * 100;
 
-  // 4. Return the tier string
   if (percentile >= 80) return "Zeer hoog";
   if (percentile >= 60) return "Hoog";
   if (percentile >= 40) return "Gemiddeld";
@@ -68,10 +63,8 @@ const getCentralityTier = (node: Node | null, allNodes: Node[]): string => {
   return "Zeer laag";
 };
 
-// MODIFIED: Helper function to get the impact level
 const getImpactLevel = (node: Node | null): string => {
   if (!node) return "N.v.t.";
-  // The full threat name is the node's ID
   return threatImpacts[node.id] || "Onbekend";
 };
 
@@ -84,14 +77,12 @@ export const MainContent = ({
   filteredEdges,
   selectedNodeId,
   onSelectNode,
-  edgeDisplayMode,
 }: MainContentProps) => {
   const graphRef = useRef<GraphChartRef>(null);
 
   const [selectedEdge, setSelectedEdge] = useState<Edge | null>(null);
   const [showRelationships] = useState<boolean>(false);
   const [showPanel, setShowPanel] = useState<boolean>(false);
-  // Default sizing attribute is now the primary centrality metric
   const [scoringMetric] = useState<CentralityMetric>('cross_category_eigen_centrality_out');
   const [minNodeSize] = useState<number>(5);
   const [maxNodeSize] = useState<number>(15);
@@ -125,7 +116,6 @@ export const MainContent = ({
     return [...filteredNodes]
       .map(node => ({
         ...node,
-        // Add the short label to the objects for the selector component
         displayLabel: shortNodeDescriptions[node.id] || node.label,
       }))
       .sort((a, b) => {
@@ -190,46 +180,42 @@ export const MainContent = ({
         maxNodeSize={maxNodeSize}
         edgeWeightCutoff={edgeWeightCutoff}
         useWeightBasedEdgeSize={useWeightBasedEdgeSize}
-        shortNodeDescriptions={shortNodeDescriptions} // <-- PASSED AS PROP
+        shortNodeDescriptions={shortNodeDescriptions}
       />
       </div>
 
       <div className="absolute bottom-10 left-10 z-10">
         <ColorLegend />
       </div>
+
+      {/* --- START: MODIFIED TOOLTIP/SHEET SECTION --- */}
       <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-10 flex items-center space-x-2">
+        {/* Note: The first empty/broken Sheet and Tooltip block was removed. */}
         <div className="bg-background/70 backdrop-blur-md p-2 rounded-lg shadow-lg">
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Sheet>
-                </Sheet>
-              </TooltipTrigger>
-              <TooltipContent><p>Open grafiek instellingen</p></TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-        </div>
-        <div className="bg-background/70 backdrop-blur-md p-2 rounded-lg shadow-lg">
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                 <Sheet>
-                   <SheetTrigger asChild>
-                     <Button variant="outline" size="sm" className="gap-1 px-3" disabled={loading || !!error || nodes.length === 0}>
-                       <ListOrdered className="h-4 w-4" />
-                       <span>Ranglijst</span>
-                     </Button>
-                   </SheetTrigger>
-                   <SheetContent side="bottom" className="h-[75vh] flex flex-col p-0">
-                       <ThreatTable nodes={nodes} />
-                   </SheetContent>
-                 </Sheet>
-              </TooltipTrigger>
-              <TooltipContent><p>Bekijk dreiging ranglijst & exporteer</p></TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+          <Sheet>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <SheetTrigger asChild>
+                    <Button variant="outline" size="sm" className="gap-1 px-3" disabled={loading || !!error || nodes.length === 0}>
+                      <ListOrdered className="h-4 w-4" />
+                      <span>Ranglijst</span>
+                    </Button>
+                  </SheetTrigger>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Bekijk dreiging ranglijst & exporteer</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+            <SheetContent side="bottom" className="h-[75vh] flex flex-col p-0">
+              <ThreatTable nodes={nodes} />
+            </SheetContent>
+          </Sheet>
         </div>
       </div>
+       {/* --- END: MODIFIED TOOLTIP/SHEET SECTION --- */}
+
        {edgeWeightCutoff > 0.5 && (
          <div className="absolute top-16 left-1/2 transform -translate-x-1/2 z-10">
            <div className="bg-background/70 backdrop-blur-md px-3 py-1 rounded-lg shadow-lg text-xs">
@@ -238,14 +224,6 @@ export const MainContent = ({
            </div>
          </div>
        )}
-      {edgeDisplayMode !== 'all' && selectedNodeId && (
-        <div className="absolute top-24 left-1/2 transform -translate-x-1/2 z-10">
-          <div className="bg-background/70 backdrop-blur-md px-3 py-1 rounded-lg shadow-lg text-xs">
-            <span className="text-muted-foreground">Verbindingen: </span>
-            <span>Toon alleen {edgeDisplayMode === 'incoming' ? 'inkomende' : 'uitgaande'} verbindingen voor geselecteerde dreiging</span>
-          </div>
-        </div>
-      )}
       <div className="md:hidden absolute top-4 right-4 z-10">
         <Button variant="secondary" className="bg-background/70 backdrop-blur-md shadow-lg" onClick={() => setShowPanel(!showPanel)}>
           {showPanel ? "Verberg Paneel" : "Toon Paneel"}
@@ -289,13 +267,11 @@ export const MainContent = ({
 
               {selectedNode && (
                 <div className="flex flex-col h-full overflow-hidden">
-                  {/* MODIFIED: Sleek and elegant selected node display */}
                   <div className="flex-shrink-0">
                     <div className="p-4 bg-muted/20 rounded-lg border border-border/20">
                       <p className="font-semibold text-lg text-primary mb-4">{shortNodeDescriptions[selectedNode.id] || selectedNode.label}</p>
 
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
-
                         <div className="p-3 bg-background/50 rounded-md flex items-center gap-3">
                           <BookText className="h-5 w-5 text-muted-foreground" />
                           <div>
@@ -303,7 +279,6 @@ export const MainContent = ({
                             <p className="font-bold text-sm text-foreground">{getTotalCitationsCount(selectedNode)}</p>
                           </div>
                         </div>
-
                         <div className="p-3 bg-background/50 rounded-md flex items-center gap-3">
                           <Move className="h-5 w-5 text-muted-foreground" />
                           <div>
@@ -311,7 +286,6 @@ export const MainContent = ({
                             <p className="font-semibold text-sm text-foreground">{getCentralityTier(selectedNode, nodes)}</p>
                           </div>
                         </div>
-
                         <div className="p-3 bg-background/50 rounded-md flex items-center gap-3">
                           <ShieldAlert className="h-5 w-5 text-muted-foreground" />
                           <div>
@@ -319,7 +293,6 @@ export const MainContent = ({
                             <p className="font-semibold text-sm text-foreground">{getImpactLevel(selectedNode)}</p>
                           </div>
                         </div>
-
                       </div>
                     </div>
                   </div>
@@ -359,7 +332,6 @@ export const MainContent = ({
                 </div>
               )}
 
-              {/* MODIFICATION START: Updated edge info screen */}
               {selectedEdge && (
                 <div className="flex flex-col h-full overflow-hidden">
                    <div className="flex-shrink-0">
@@ -428,7 +400,6 @@ export const MainContent = ({
                   </div>
                 </div>
               )}
-              {/* MODIFICATION END */}
             </div>
 
             <div className="md:hidden mt-4">
