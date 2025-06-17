@@ -1,52 +1,52 @@
-import { useState, useMemo, useRef, useEffect } from 'react';
+import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { GraphCanvas, GraphCanvasRef, lightTheme } from 'reagraph';
 import {
-Select,
-SelectContent,
-SelectItem,
-SelectTrigger,
-SelectValue,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from '@/components/ui/select';
 
 // Define types for our enhanced network data
 export interface Node {
-id: string;
-label: string;
-summary: string;
-citaten: any[];
-nr_docs: number;
-nr_citations: number;
-data?: {
-eigen_centrality?: number;
-eigen_centrality_in?: number;
-eigen_centrality_out?: number;
-eigen_centrality_cross_category?: number;
-eigen_centrality_in_cross_category?: number;
-eigen_centrality_out_cross_category?: number;
-[key: string]: any;
-};
-category: string;
-[key: string]: any;
+  id: string;
+  label: string;
+  summary: string;
+  citaten: any[];
+  nr_docs: number;
+  nr_citations: number;
+  data?: {
+    eigen_centrality?: number;
+    eigen_centrality_in?: number;
+    eigen_centrality_out?: number;
+    eigen_centrality_cross_category?: number;
+    eigen_centrality_in_cross_category?: number;
+    eigen_centrality_out_cross_category?: number;
+    [key: string]: any;
+  };
+  category: string;
+  [key: string]: any;
 }
 
 export interface Edge {
-id: string;
-source: string;
-target: string;
-label: string;
-weight: number;
-citaat_relaties: any[];
-raw_count: number;
-[key: string]: any;
+  id: string;
+  source: string;
+  target: string;
+  label: string;
+  weight: number;
+  citaat_relaties: any[];
+  raw_count: number;
+  [key: string]: any;
 }
 
 export const categoryColors: Record<string, string> = {
-'Sociaal & Maatschappelijk': '#0699a9',
-'Economisch': '#702f8e',
-'Ecologisch': '#84b440',
-'Geopolitiek & militair': '#a8aaad',
-'Technologisch & digitaal': '#abccd5',
-'Gezondheid': '#e42259'
+  'Sociaal & Maatschappelijk': '#0699a9',
+  'Economisch': '#702f8e',
+  'Ecologisch': '#84b440',
+  'Geopolitiek & militair': '#a8aaad',
+  'Technologisch & digitaal': '#abccd5',
+  'Gezondheid': '#e42259'
 };
 
 const theme = {
@@ -68,158 +68,210 @@ const theme = {
 };
 
 interface RelationGraphCanvasProps {
-nodes: Node[];
-edges: Edge[];
+  nodes: Node[];
+  edges: Edge[];
 }
+
+const formatDocumentLink = (link: string): string => {
+  if (link && link.startsWith('/')) {
+    return `https://open.overheid.nl${link}`;
+  }
+  return link || '#';
+};
+
+const renderCitationParts = (citationText: string) => {
+  if (!citationText.includes(" ||| ")) {
+    return <div className="italic bg-gray-100 p-3 rounded text-sm text-left">"{citationText}"</div>;
+  }
+  const parts = citationText.split(" ||| ");
+  return (
+    <div className="space-y-2">
+      {parts.map((part, i) => (
+        <div key={i} className="italic bg-gray-100 p-3 rounded text-sm text-left">
+          "{part.trim()}"
+        </div>
+      ))}
+    </div>
+  );
+};
+
+const CitationPopup = ({ edge, onClose }: { edge: Edge; onClose: () => void; }) => {
+    if (!edge) return null;
+  
+    return (
+      <div className="absolute inset-0 flex items-center justify-center p-4 bg-gray-500 bg-opacity-20" onClick={onClose}>
+        <div className="bg-white rounded-xl shadow-2xl p-6 w-full max-w-2xl max-h-[540px] flex flex-col" onClick={e => e.stopPropagation()}>
+          <div className="flex justify-between items-center mb-4 flex-shrink-0">
+            <h2 className="text-xl font-semibold text-gray-800">Representatieve citaten</h2>
+            <button onClick={onClose} className="text-2xl font-light text-gray-500 hover:text-gray-900 leading-none">&times;</button>
+          </div>
+  
+          <div className="flex-1 overflow-y-auto pr-2 -mr-2 space-y-4">
+            {edge.citaat_relaties && edge.citaat_relaties.length > 0 ? (
+              edge.citaat_relaties.map((citation, index) => (
+                <div key={index} className="p-4 bg-white rounded-lg border border-gray-200">
+                  <div className="flex justify-between items-start mb-2">
+                    <a href={formatDocumentLink(citation.document_link)} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-gray-800 hover:underline flex-1 mr-2">
+                      {citation.title || "Onbekende Titel"}
+                    </a>
+                  </div>
+                  <div className="flex flex-wrap text-xs text-gray-500 mb-3 space-x-2">
+                    {citation.publication_date && <div>{citation.publication_date.slice(0, 7)}</div>}
+                    {citation.publication_date && citation.source && <div>•</div>}
+                    {citation.source && <div>{citation.source}</div>}
+                  </div>
+                  <div className="text-sm mt-2">
+                    <div className="flex gap-2 mb-1">
+                      <span className="text-xs font-medium bg-gray-200 px-2 py-0.5 rounded w-16 flex-shrink-0 text-center">Oorzaak</span>
+                      <span className="text-left flex-1 text-gray-700">{citation.oorzaak}</span>
+                    </div>
+                    <div className="flex gap-2 mb-3">
+                      <span className="text-xs font-medium bg-gray-200 px-2 py-0.5 rounded w-16 flex-shrink-0 text-center">Gevolg</span>
+                      <span className="text-left flex-1 text-gray-700">{citation.gevolg}</span>
+                    </div>
+                    {renderCitationParts(citation.citaat)}
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="text-sm text-gray-500 p-4 bg-gray-50 rounded-lg">
+                Geen citaties beschikbaar voor deze verbinding.
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  };
 
 export const RelationGraphCanvas = ({ nodes, edges }: RelationGraphCanvasProps) => {
-const [selectedThreat, setSelectedThreat] = useState<string>('polarisatie rond complottheorieën');
-const graphRef = useRef<GraphCanvasRef | null>(null);
+  const [selectedThreat, setSelectedThreat] = useState<string>('polarisatie rond complottheorieën');
+  const [selectedEdge, setSelectedEdge] = useState<Edge | null>(null);
+  const graphRef = useRef<GraphCanvasRef | null>(null);
 
-// Handle undefined nodes/edges
-const safeNodes = nodes || [];
-const safeEdges = edges || [];
+  const safeNodes = nodes || [];
+  const safeEdges = edges || [];
 
-// Get nodes that have outgoing connections for the selection menu
-const nodesWithOutgoingConnections = useMemo(() => {
-const nodesWithOutgoing = new Set<string>();
-safeEdges.forEach(edge => {
-nodesWithOutgoing.add(edge.source);
-});
-return safeNodes.filter(node => nodesWithOutgoing.has(node.id));
-}, [safeNodes, safeEdges]);
+  const nodesWithOutgoingConnections = useMemo(() => {
+    const nodesWithOutgoing = new Set<string>();
+    safeEdges.forEach(edge => {
+      nodesWithOutgoing.add(edge.source);
+    });
+    return safeNodes.filter(node => nodesWithOutgoing.has(node.id));
+  }, [safeNodes, safeEdges]);
 
-// Filter nodes and edges based on selected threat
-const { filteredNodes, filteredEdges } = useMemo(() => {
-let relevantNodes = safeNodes;
-let relevantEdges = safeEdges;
+  const { filteredNodes, filteredEdges } = useMemo(() => {
+    let relevantNodes = safeNodes;
+    let relevantEdges = safeEdges;
 
-if (selectedThreat) {
-// Find first order effects (direct outgoing connections) with weights
-const firstOrderConnections = safeEdges
-.filter(edge => edge.source === selectedThreat)
-.sort((a, b) => (b.weight || 0) - (a.weight || 0)) // Sort by weight descending
-.slice(0, 6); // Take top 9 highest weighted connections
+    if (selectedThreat) {
+      const firstOrderConnections = safeEdges
+        .filter(edge => edge.source === selectedThreat)
+        .sort((a, b) => (b.weight || 0) - (a.weight || 0))
+        .slice(0, 6);
 
-const firstOrderTargets = new Set(firstOrderConnections.map(edge => edge.target));
+      const firstOrderTargets = new Set(firstOrderConnections.map(edge => edge.target));
 
-// Find second order effects (connections from first order targets) with weights
-const secondOrderConnections = safeEdges
-.filter(edge =>
-firstOrderTargets.has(edge.source) &&
-edge.target !== selectedThreat &&
-!firstOrderTargets.has(edge.target)
-)
-.sort((a, b) => (b.weight || 0) - (a.weight || 0)) // Sort by weight descending
-.slice(0, 6); // Take top 9 highest weighted connections
+      const secondOrderConnections = safeEdges
+        .filter(edge =>
+          firstOrderTargets.has(edge.source) &&
+          edge.target !== selectedThreat &&
+          !firstOrderTargets.has(edge.target)
+        )
+        .sort((a, b) => (b.weight || 0) - (a.weight || 0))
+        .slice(0, 6);
 
-const secondOrderTargets = new Set(secondOrderConnections.map(edge => edge.target));
+      const secondOrderTargets = new Set(secondOrderConnections.map(edge => edge.target));
 
-// Combine all relevant node IDs
-const relevantNodeIds = new Set([
-selectedThreat,
-...firstOrderTargets,
-...secondOrderTargets
-]);
+      const relevantNodeIds = new Set([
+        selectedThreat,
+        ...firstOrderTargets,
+        ...secondOrderTargets
+      ]);
 
-// Filter nodes to only include relevant ones
-relevantNodes = safeNodes.filter(node => relevantNodeIds.has(node.id));
+      relevantNodes = safeNodes.filter(node => relevantNodeIds.has(node.id));
+      relevantEdges = [...firstOrderConnections, ...secondOrderConnections];
+    }
 
-// Use the pruned edges (no need to filter for cycles since we're being selective)
-relevantEdges = [...firstOrderConnections, ...secondOrderConnections];
-}
+    const processedNodes = relevantNodes.map(node => {
+      const category = node.category || 'unknown';
+      const color = categoryColors[category] || '#A9A9A9';
+      return { ...node, fill: color, color: color };
+    });
 
-// Apply category colors and process nodes
-const processedNodes = relevantNodes.map(node => {
-const category = node.category || 'unknown';
-const color = categoryColors[category] || categoryColors.unknown;
-return {
-...node,
-fill: color,
-color: color
-};
-});
+    const processedEdges = relevantEdges.map(edge => {
+      const weight = edge.weight || 1;
+      const size = Math.max(1, Math.min(4, Math.round(weight * 2)));
+      return { ...edge, size };
+    });
 
-// Process edges with weight-based sizing
-const processedEdges = relevantEdges.map(edge => {
-const weight = edge.weight || 1;
-// Scale edge size based on weight (1-4 range)
-const size = Math.max(1, Math.min(4, Math.round(weight * 2)));
-return {
-...edge,
-size
-};
-});
+    return { filteredNodes: processedNodes, filteredEdges: processedEdges };
+  }, [selectedThreat, safeNodes, safeEdges]);
 
-return {
-filteredNodes: processedNodes,
-filteredEdges: processedEdges
-};
-}, [selectedThreat, safeNodes, safeEdges]);
+  useEffect(() => {
+    if (graphRef.current && selectedThreat) {
+      const timer = setTimeout(() => {
+        graphRef.current?.fitNodesInView();
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [selectedThreat, filteredNodes]);
 
-// Auto-fit the graph view when threat selection changes
-useEffect(() => {
-if (graphRef.current && selectedThreat) {
-// Small delay to ensure the graph has rendered with new data
-const timer = setTimeout(() => {
-graphRef.current?.fitNodesInView();
-}, 100);
-return () => clearTimeout(timer);
-}
-}, [selectedThreat, filteredNodes]);
+  const handleEdgeClick = useCallback((edge: Edge) => {
+    setSelectedEdge(current => (current && current.id === edge.id ? null : edge));
+  }, []);
 
-return (
-<div className="w-full space-y-4">
-{/* Threat Selection */}
-<div className="flex items-center justify-center">
-<div className="w-80">
-<Select value={selectedThreat} onValueChange={setSelectedThreat}>
-<SelectTrigger className="w-full bg-white border-gray-200 shadow-sm hover:border-[rgb(0,168,120)] focus:border-[rgb(0,168,120)] focus:ring-1 focus:ring-[rgb(0,168,120)] transition-colors">
-<SelectValue placeholder="Selecteer een dreiging..." />
-</SelectTrigger>
-<SelectContent className="max-h-60">
-{nodesWithOutgoingConnections
-.sort((a, b) => a.label.localeCompare(b.label))
-.map((node) => (
-<SelectItem
-key={node.id}
-value={node.id}
-className="hover:bg-gray-50 focus:bg-[rgb(0,168,120)]/10"
->
-<div className="flex flex-col">
-<span className="font-medium">{node.label}</span>
-{node.summary && (
-<span className="text-xs text-gray-500 truncate max-w-60">
-{node.summary}
-</span>
-)}
-</div>
-</SelectItem>
-))}
-</SelectContent>
-</Select>
-</div>
-</div>
+  return (
+    <div className="w-full space-y-4">
+      <div className="flex items-center justify-center">
+        <div className="w-80">
+          <Select value={selectedThreat} onValueChange={setSelectedThreat}>
+            <SelectTrigger className="w-full bg-white border-gray-200 shadow-sm hover:border-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors">
+              <SelectValue placeholder="Selecteer een dreiging..." />
+            </SelectTrigger>
+            <SelectContent className="max-h-60">
+              {nodesWithOutgoingConnections
+                .sort((a, b) => a.label.localeCompare(b.label))
+                .map((node) => (
+                  <SelectItem
+                    key={node.id}
+                    value={node.id}
+                    className="hover:bg-gray-100 focus:bg-blue-50"
+                  >
+                    <div className="flex flex-col">
+                      <span className="font-medium">{node.label}</span>
+                      {node.summary && (
+                        <span className="text-xs text-gray-500 truncate max-w-60">
+                          {node.summary}
+                        </span>
+                      )}
+                    </div>
+                  </SelectItem>
+                ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
 
-{/* Graph Canvas */}
-<div className="w-full bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
-<div
-style={{
-width: '100%',
-height: '600px',
-position: 'relative'
-}}
->
-<GraphCanvas
-ref={graphRef}
-nodes={filteredNodes}
-edges={filteredEdges}
-theme={theme}
-cameraMode="rotate"
-layoutType="hierarchicalLr"
-/>
-</div>
-</div>
-</div>
-);
+      <div className="w-full bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
+        <div style={{ width: '100%', height: '600px', position: 'relative' }}>
+          <GraphCanvas
+            ref={graphRef}
+            nodes={filteredNodes}
+            edges={filteredEdges}
+            theme={theme}
+            cameraMode="rotate"
+            layoutType="hierarchicalLr"
+            onEdgeClick={handleEdgeClick as any}
+          />
+          {selectedEdge && (
+            <CitationPopup
+              edge={selectedEdge}
+              onClose={() => setSelectedEdge(null)}
+            />
+          )}
+        </div>
+      </div>
+    </div>
+  );
 };

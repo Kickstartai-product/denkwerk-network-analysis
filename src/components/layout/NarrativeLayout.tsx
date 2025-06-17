@@ -84,6 +84,9 @@ export const NarrativeLayout = () => {
   const [rawCountThreshold] = useState<number>(6);
   const [threatImpactWeights] = useState<ThreatImpactWeights>(DEFAULT_THREAT_IMPACT_WEIGHTS);
   const [mounted, setMounted] = useState(false);
+  const [isFootnoteDialogOpen, setIsFootnoteDialogOpen] = useState(false);
+
+  
 
   // --- NEW: Intersection Observer to track main content visibility ---
   useEffect(() => {
@@ -199,6 +202,19 @@ export const NarrativeLayout = () => {
                 </div>
             </DialogContent>
         </Dialog>
+
+        <Dialog open={isFootnoteDialogOpen} onOpenChange={setIsFootnoteDialogOpen}>
+    <DialogContent className="w-[95vw] sm:w-[90vw] max-w-2xl bg-white/95 backdrop-blur-sm">
+        <DialogHeader>
+            <DialogTitle className="text-xl">Noot over AI-analyse</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4">
+            <p className="text-gray-700 leading-relaxed text-left">
+                AI-modellen kunnen soms incorrecte verbanden identificeren tussen concepten. Om dit risico te beperken, worden alleen verbanden opgenomen die meerdere keren in verschillende bronnen voorkomen. Op deze website presenteren we de meest representatieve citaten per verband, maar we moedigen lezers aan om de originele bronnen te raadplegen om citaten in hun volledige context te begrijpen.
+            </p>
+        </div>
+    </DialogContent>
+</Dialog>
         
         {/* The single button that morphs its appearance and function */}
         <button
@@ -330,9 +346,10 @@ Om een netwerk van dreigingen te creëren, moeten we eerst de verbanden tussen d
                     <div className="flex-1 h-[1.5px] bg-gray-300"></div>
                 </div>
                 <div className="space-y-6">
-                    <p className="text-base md:text-lg text-gray-700 leading-relaxed text-left">
-Uit deze analyse zijn duizenden citaten verzameld die wijzen op causale verbanden. Deze verbanden vormen een netwerk waarin elke dreiging een knoop is. Om de betrouwbaarheid te waarborgen, negeren we verbanden die slechts sporadisch in de data voorkomen. Dit netwerk stelt ons in staat te identificeren welke dreigingen als centrale knooppunten functioneren, ofwel dreigingen die vele andere dreigingen beïnvloeden. Door ons te richten op dreigingen die keteneffecten kunnen veroorzaken, kunnen we effectiever prioriteiten stellen in ons nationaal veiligheidsbeleid.                    </p>
-                    <Card className="border border-gray-200/60 bg-white/50 backdrop-blur-sm shadow-sm rounded-lg overflow-hidden">
+                <p className="text-base md:text-lg text-gray-700 leading-relaxed text-left">
+                Uit deze analyse zijn duizenden citaten verzameld die wijzen op causale verbanden. Deze verbanden vormen een netwerk waarin elke dreiging een knoop is. Om de betrouwbaarheid te waarborgen, negeren we verbanden die slechts sporadisch worden geïdentificeerd.<sup><button onClick={() => setIsFootnoteDialogOpen(true)} className="text-[rgb(0,153,168)] font-bold hover:underline">1</button></sup> Dit netwerk stelt ons in staat te identificeren welke dreigingen als centrale knooppunten functioneren, ofwel dreigingen die vele andere dreigingen beïnvloeden. Door ons te richten op dreigingen die keteneffecten kunnen veroorzaken, kunnen we effectiever prioriteiten stellen in ons nationaal veiligheidsbeleid.
+                </p>                 
+                <Card className="border border-gray-200/60 bg-white/50 backdrop-blur-sm shadow-sm rounded-lg overflow-hidden">
                         <div className="p-4 sm:p-6">
                             <ClimateImpactGraph />
                         </div>
@@ -350,11 +367,18 @@ De dreigingen in de visualisatie zijn verdeeld over zes categorieën (zoals econ
                         </div>
                         <div className="px-4 sm:px-6 pb-4 border-t border-gray-200/40">
                             <p className="text-sm text-gray-600 leading-relaxed pt-4 text-center font-medium">
-                                Het dreigingsnetwerk: grotere knopen hebben meer invloed op andere dreigingen. Door ons te richten op deze knooppunten kunnen we kettingreacties voorkomen.
+                                Ontdek keteneffecten van verschillende dreigingen in het netwerk. <strong>Klik op een verbinding</strong> om de onderliggende citaten en brondocumenten te bekijken.
                             </p>
                         </div>
                     </Card>
                     <p className="text-base md:text-lg text-gray-700 leading-relaxed text-left">De visualisatie is interactief: <strong style={{ color: 'rgb(0, 153, 168)' }}>klik op een verbinding om de onderliggende citaten en brondocumenten te raadplegen.</strong> Voor een diepgaande blik en uitleg verwijzen we u naar ons <a href='https://google.com' target='_blank' rel='noopener noreferrer' style={{ color: 'rgb(0, 153, 168)', fontWeight: 'bold' }} className='underline'>rapport</a> en de bijbehorende <a href='https://google.com' target='_blank' rel='noopener noreferrer' style={{ color: 'rgb(0, 153, 168)', fontWeight: 'bold' }} className='underline'>appendix</a>.</p>
+
+                {/* Footnote */}
+                <div className="mt-8 pt-6 border-t border-gray-300">
+                    <p className="text-sm text-gray-600 leading-relaxed">
+                        <span className="text-[rgb(0,153,168)] font-bold">1</span> AI-modellen kunnen soms incorrecte verbanden identificeren tussen concepten. Om dit risico te beperken, worden alleen verbanden opgenomen die meerdere keren in verschillende bronnen voorkomen. Op deze website presenteren we de meest representatieve citaten per verband, maar we moedigen lezers aan om de originele bronnen te raadplegen om citaten in hun volledige context te begrijpen.
+                    </p>
+                </div>
                 </div>
               </div>
               

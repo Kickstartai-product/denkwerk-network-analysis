@@ -314,21 +314,15 @@ export const MainContent = ({
                     <div id="centrality-info" className="p-4 bg-muted/20 rounded-lg border border-border/20">
                       <p className="font-semibold text-lg text-primary mb-4">{shortNodeDescriptions[selectedNode.id] || selectedNode.label}</p>
 
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
-                        <div className="p-3 bg-background/50 rounded-md flex items-center gap-3">
-                          <BookText className="h-5 w-5 text-muted-foreground" />
-                          <div>
-                            <span className="text-muted-foreground">Citaties</span>
-                            <p className="font-bold text-sm text-foreground">{getTotalCitationsCount(selectedNode)}</p>
-                          </div>
-                        </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
                         <div className="p-3 bg-background/50 rounded-md flex items-center gap-3">
                           <Move className="h-5 w-5 text-muted-foreground" />
                           <div>
                             <span className="text-muted-foreground">Centraliteit</span>
-                            <p className="font-semibold text-sm text-foreground">{getCentralityTier(selectedNode, nodes)}</p>
+                            <p className="font-bold text-sm text-foreground">{getCentralityTier(selectedNode, nodes)}</p>
                           </div>
                         </div>
+
                         <div className="p-3 bg-background/50 rounded-md flex items-center gap-3">
                           <ShieldAlert className="h-5 w-5 text-muted-foreground" />
                           <div>
@@ -392,8 +386,8 @@ export const MainContent = ({
                         <div className="p-3 bg-background/50 rounded-md flex items-center gap-3">
                           <BookText className="h-5 w-5 text-muted-foreground" />
                           <div>
-                            <span className="text-muted-foreground">Citaties Verbinding</span>
-                            <p className="font-bold text-sm text-foreground">{selectedEdge.citaat_relaties?.length || 0}</p>
+                            <span className="text-muted-foreground">Gevonden citaten</span>
+                            <p className="font-bold text-sm text-foreground">{selectedEdge.raw_count || 0}</p>
                           </div>
                         </div>
 
