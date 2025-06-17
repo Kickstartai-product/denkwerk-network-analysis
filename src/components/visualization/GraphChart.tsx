@@ -388,7 +388,7 @@ const GraphChart = forwardRef<GraphChartRef, GraphChartProps>(
     // The 100ms delay is a pragmatic choice, but for very complex graphs,
     // you might consider a slightly longer delay or a more sophisticated
     // check if the library provides any status flags.
-    const timer = setTimeout(applyInitialCameraTransform, 100);
+    const timer = setTimeout(applyInitialCameraTransform, 1000);
 
     // Cleanup function to clear the timeout if the component unmounts
     // or if the dependencies change before the timeout completes.
