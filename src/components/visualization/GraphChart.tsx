@@ -371,35 +371,47 @@ const GraphChart = forwardRef<GraphChartRef, GraphChartProps>(
     }, [selectedEdge, selectedNodeId, selections, clearSelections, setSelections, processedEdgeIds, onEdgeClick]);
 
 
-    useEffect(() => {
+  useEffect(() => {
+    // A function to apply the desired camera transformation.
+    const applyInitialCameraTransform = () => {
       if (graphRef.current) {
-        const timer = setTimeout(() => {
-          if (graphRef.current) {
-            graphRef.current.zoomOut();
-            const controls = graphRef.current.getControls();
-            if (controls && controls.pan) {
-              controls.pan(230, 0);
-            }
-          }
-        }, 100);
-        return () => clearTimeout(timer);
+
+        const controls = graphRef.current.getControls();
+        if (controls && controls.pan) {
+          // The pan operation is now more likely to be on the fully rendered graph.
+          controls.pan(230, 0);
+        }
+        graphRef.current.zoomOut();
       }
-    }, [nodes, edges]);
+    };
+
+    // The 100ms delay is a pragmatic choice, but for very complex graphs,
+    // you might consider a slightly longer delay or a more sophisticated
+    // check if the library provides any status flags.
+    const timer = setTimeout(applyInitialCameraTransform, 100);
+
+    // Cleanup function to clear the timeout if the component unmounts
+    // or if the dependencies change before the timeout completes.
+    return () => clearTimeout(timer);
+  }, [nodes, edges]); // This effect is correctly dependent on nodes and edges.
     
-    useImperativeHandle(ref, () => ({        
-      centerOnNode: (nodeId: string) => {          
-        if (graphRef.current) {            
-          graphRef.current.centerGraph([nodeId]);            
-          if(graphRef.current.getControls().camera.zoom < 1){              
-            graphRef.current.zoomIn();            
-          }            
-        }        
-      },        
-      fitAllNodesInView: () => graphRef.current?.fitNodesInView(),        
-      zoomIn: () => graphRef.current?.zoomIn(),        
-      zoomOut: () => graphRef.current?.zoomOut(),        
-      resetCamera: () => graphRef.current?.resetControls()
-    }));
+useImperativeHandle(ref, () => ({
+    centerOnNode: (nodeId: string) => {
+        if (graphRef.current) {
+            const cameraControls = graphRef.current.getControls();
+            graphRef.current.centerGraph([nodeId]);
+            const isZoomLessThanOne = cameraControls.camera.zoom < 1;
+
+            if (isZoomLessThanOne) {
+                graphRef.current.zoomIn();
+            }
+        }
+    },
+    fitAllNodesInView: () => graphRef.current?.fitNodesInView(),
+    zoomIn: () => graphRef.current?.zoomIn(),
+    zoomOut: () => graphRef.current?.zoomOut(),
+    resetCamera: () => graphRef.current?.resetControls()
+}));
 
     const handleNodeClick = (node: CustomNode) => {
       if (onEdgeClick) onEdgeClick(null);

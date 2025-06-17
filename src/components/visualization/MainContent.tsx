@@ -147,13 +147,13 @@ export const MainContent = ({
 
   const renderCitationParts = (citationText: string) => {
     if (!citationText.includes(" ||| ")) {
-      return <div className="italic bg-muted/40 p-3 rounded text-sm">"{citationText}"</div>;
+      return <div className="italic bg-muted/40 p-3 rounded text-sm text-left">"{citationText}"</div>;
     }
     const parts = citationText.split(" ||| ");
     return (
       <div className="space-y-2">
         {parts.map((part, i) => (
-          <div key={i} className="italic bg-muted/40 p-3 rounded text-sm">
+          <div key={i} className="italic bg-muted/40 p-3 rounded text-sm text-left">
             "{part.trim()}"
           </div>
         ))}
@@ -308,18 +308,18 @@ export const MainContent = ({
                                 {citation.title || "Onbekende Titel"}
                               </a>
                             </div>
-                            <div className="flex flex-wrap text-xs text-muted-foreground mb-2 space-x-2">
-                              {citation.publication_date && <div>{citation.publication_date.slice(0, 7)}</div>}
-                              {citation.publication_date && (citation.document_type || citation.source) && <div>•</div>}
-                              {citation.document_type && <div>{citation.document_type}</div>}
-                              {citation.document_type && citation.source && <div>•</div>}
-                              {citation.source && <div>{citation.source}</div>}
+                          <div className="flex flex-wrap text-xs text-muted-foreground mb-2 space-x-2 text-left">
+                            {citation.publication_date && <div>{citation.publication_date.slice(0, 7)}</div>}
+                            {citation.publication_date && (citation.document_type || citation.source) && <div>•</div>}
+                            {citation.document_type && <div>{citation.document_type}</div>}
+                            {citation.document_type && citation.source && <div>•</div>}
+                            {citation.source && <div>{citation.source}</div>}
+                          </div>
+                          {citation.citaat.split('|||').map((citaatPart, partIndex) => (
+                            <div key={partIndex} className="text-sm mt-2 italic bg-muted/40 p-2 rounded text-left">
+                              "{citaatPart.trim()}"
                             </div>
-                            {citation.citaat.split('|||').map((citaatPart, partIndex) => (
-                              <div key={partIndex} className="text-sm mt-2 italic bg-muted/40 p-2 rounded">
-                                "{citaatPart.trim()}"
-                              </div>
-                            ))}
+                          ))}
                           </div>
                          ))
                       ) : (
@@ -379,14 +379,14 @@ export const MainContent = ({
                               {citation.source && <div>{citation.source}</div>}
                             </div>
                             <div className="text-sm mt-2">
-                              <div className="flex gap-2 mb-1">
-                                <span className="text-xs font-medium bg-primary/10 px-2 py-0.5 rounded">Oorzaak</span>
-                                <span>{citation.oorzaak}</span>
-                              </div>
-                              <div className="flex gap-2 mb-3">
-                                <span className="text-xs font-medium bg-primary/10 px-2 py-0.5 rounded">Gevolg</span>
-                                <span>{citation.gevolg}</span>
-                              </div>
+                            <div className="flex gap-2 mb-1">
+                              <span className="text-xs font-medium bg-primary/10 px-2 py-0.5 rounded w-16 flex-shrink-0">Oorzaak</span>
+                              <span className="text-left flex-1">{citation.oorzaak}</span>
+                            </div>
+                            <div className="flex gap-2 mb-3">
+                              <span className="text-xs font-medium bg-primary/10 px-2 py-0.5 rounded w-16 flex-shrink-0">Gevolg</span>
+                              <span className="text-left flex-1">{citation.gevolg}</span>
+                            </div>
                               {renderCitationParts(citation.citaat)}
                             </div>
                           </div>

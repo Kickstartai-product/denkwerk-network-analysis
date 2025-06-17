@@ -50,25 +50,21 @@ export const categoryColors: Record<string, string> = {
 };
 
 const theme = {
-...lightTheme,
-canvas: {
-background: 'rgb(252, 253, 254)',
-fog: 'rgb(252, 253, 254)',
-},
-node: {
-...lightTheme.node,
-activeFill: 'rgb(0,168,120)',
-label: { ...lightTheme.node.label, activeColor: 'rgb(0,168,120)' },
-},
-edge: {
-...lightTheme.edge,
-activeStroke: 'rgb(0,168,120)',
-activeFill: 'rgb(0,168,120)',
-opacity: 0.5,
-},
-arrow: { ...lightTheme.arrow, activeFill: 'rgb(0,168,120)' },
-ring: { ...lightTheme.ring, activeFill: 'rgb(0,168,120)' },
-cluster: null as any,
+  ...lightTheme,
+  node: {
+    ...lightTheme.node,
+    activeFill: '#FF8C42',
+    label: { ...lightTheme.node.label, activeColor: '#FF8C42' },
+  },
+  edge: {
+    ...lightTheme.edge,
+    activeStroke: '#FF8C42',
+    activeFill: '#FF8C42',
+    opacity: 0.5,
+  },
+  arrow: { ...lightTheme.arrow, activeFill: '#FF8C42' },
+  ring: { ...lightTheme.ring, activeFill: '#FF8C42' },
+  cluster: null as any,
 };
 
 interface RelationGraphCanvasProps {
