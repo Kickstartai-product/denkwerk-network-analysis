@@ -49,7 +49,7 @@ export const Sphere: FC<NodeRendererProps> = ({
         opacity={selected ? 0.5 : 0}
         size={size}
         animated={animated}
-        color={selected ? theme.ring.activeFill : theme.ring.fill}
+        color={color}
       />
     </>
   );

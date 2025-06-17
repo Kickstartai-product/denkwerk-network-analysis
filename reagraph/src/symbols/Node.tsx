@@ -27,98 +27,41 @@ import { Icon } from './nodes';
 import { useHoverIntent } from '../utils/useHoverIntent';
 import { ThreeEvent } from '@react-three/fiber';
 
+// ... (NodeProps interface remains the same)
 export interface NodeProps {
-  /**
-   * The unique identifier for the node.
-   */
   id: string;
-
-  /**
-   * The parent nodes of the node.
-   */
   parents?: string[];
-
-  /**
-   * Whether the node is disabled.
-   */
   disabled?: boolean;
-
-  /**
-   * Whether the node is animated.
-   */
   animated?: boolean;
-
-  /**
-   * Whether the node is draggable.
-   */
   draggable?: boolean;
-
-  /**
-   * Constrain dragging to the cluster bounds.
-   */
   constrainDragging?: boolean;
-
-  /**
-   * The url for the label font.
-   */
   labelFontUrl?: string;
-
-  /**
-   * The function to use to render the node.
-   */
   renderNode?: NodeRenderer;
-
-  /**
-   * The context menu for the node.
-   */
   contextMenu?: (event: ContextMenuEvent) => ReactNode;
-
-  /**
-   * The function to call when the pointer is over the node.
-   */
   onPointerOver?: (
     node: InternalGraphNode,
     event: ThreeEvent<PointerEvent>
   ) => void;
-
-  /**
-   * The function to call when the pointer is out of the node.
-   */
   onPointerOut?: (
     node: InternalGraphNode,
     event: ThreeEvent<PointerEvent>
   ) => void;
-
-  /**
-   * The function to call when the node is clicked.
-   */
   onClick?: (
     node: InternalGraphNode,
     props?: CollapseProps,
     event?: ThreeEvent<MouseEvent>
   ) => void;
-
-  /**
-   * The function to call when the node is double clicked.
-   */
   onDoubleClick?: (
     node: InternalGraphNode,
     event: ThreeEvent<MouseEvent>
   ) => void;
-
-  /**
-   * The function to call when the node is right clicked.
-   */
   onContextMenu?: (
     node?: InternalGraphNode,
     props?: NodeContextMenuProps
   ) => void;
-
-  /**
-   * Triggered after a node was dragged.
-   */
   onDragged?: (node: InternalGraphNode) => void;
 }
+
 
 export const Node: FC<NodeProps> = ({
   animated,
@@ -145,14 +88,21 @@ export const Node: FC<NodeProps> = ({
   const addDraggingId = useStore(state => state.addDraggingId);
   const removeDraggingId = useStore(state => state.removeDraggingId);
   const setHoveredNodeId = useStore(state => state.setHoveredNodeId);
+  
+  // -> Add this line to get the setter function
+  const setIsNodeHovered = useStore(state => state.setIsNodeHovered);
+
   const setNodePosition = useStore(state => state.setNodePosition);
   const setCollapsedNodeIds = useStore(state => state.setCollapsedNodeIds);
+  const selections = useStore(state => state.selections);
   const isCollapsed = useStore(state => state.collapsedNodeIds.includes(id));
   const isActive = useStore(state => state.actives?.includes(id));
-  const isSelected = useStore(state => state.selections?.includes(id));
-  const hasSelections = useStore(state => state.selections?.length > 0);
   const center = useStore(state => state.centerPosition);
   const cluster = useStore(state => state.clusters.get(node.cluster));
+
+  // ... (no changes in the middle of the component)
+  const isSelected = selections?.includes(id);
+  const hasSelections = selections?.length > 0;
 
   const isDraggingCurrent = draggingIds.includes(id);
   const isDragging = draggingIds.length > 0;
@@ -169,7 +119,28 @@ export const Node: FC<NodeProps> = ({
   const [active, setActive] = useState<boolean>(false);
   const [menuVisible, setMenuVisible] = useState<boolean>(false);
 
-  const shouldHighlight = active || isSelected || isActive;
+  // This logic checks if the node is part of a selected edge.
+  const isEndpointOfSelectedEdge = useMemo(() => {
+    if (!hasSelections) return false;
+
+    for (const selection of selections) {
+      if (selection.includes('|||')) {
+        const [sourceId, targetId] = selection.split('|||');
+        if (id === sourceId || id === targetId) {
+          return true;
+        }
+      }
+    }
+
+    return false;
+  }, [id, selections, hasSelections]);
+
+  // Determine if the node should be visually highlighted (full opacity)
+  const shouldHighlight = active || isSelected || isActive || isEndpointOfSelectedEdge;
+  
+  // Determine if the node should use its "active" color (e.g., on hover or drag)
+  // Selection state (`isSelected`) is intentionally omitted here to prevent color changes on selection.
+  const useActiveColor = active || isActive || isDraggingCurrent;
 
   const selectionOpacity = hasSelections
     ? shouldHighlight
@@ -244,10 +215,10 @@ export const Node: FC<NodeProps> = ({
   );
   useCursor(isDraggingCurrent, 'grabbing');
 
-  const combinedActiveState = shouldHighlight || isDraggingCurrent;
-  const color = combinedActiveState
+  const color = useActiveColor
     ? theme.node.activeFill
     : node.fill || theme.node.fill;
+
 
   const { pointerOver, pointerOut } = useHoverIntent({
     disabled: disabled || isDraggingCurrent,
@@ -256,15 +227,20 @@ export const Node: FC<NodeProps> = ({
       setActive(true);
       onPointerOver?.(node, event);
       setHoveredNodeId(id);
+      // -> Add this line
+      setIsNodeHovered(true);
     },
     onPointerOut: (event: ThreeEvent<PointerEvent>) => {
       cameraControls.unFreeze();
       setActive(false);
       onPointerOut?.(node, event);
       setHoveredNodeId(null);
+      // -> Add this line
+      setIsNodeHovered(false);
     }
   });
 
+  // ... (rest of the file is unchanged)
   const nodeComponent = useMemo(
     () =>
       renderNode ? (
@@ -272,7 +248,7 @@ export const Node: FC<NodeProps> = ({
           id,
           color,
           size: nodeSize,
-          active: combinedActiveState,
+          active: useActiveColor,
           opacity: selectionOpacity,
           animated,
           selected: isSelected,
@@ -289,7 +265,7 @@ export const Node: FC<NodeProps> = ({
               animated={animated}
               color={color}
               node={node}
-              active={combinedActiveState}
+              active={useActiveColor}
               selected={isSelected}
             />
           ) : (
@@ -300,7 +276,7 @@ export const Node: FC<NodeProps> = ({
               animated={animated}
               color={color}
               node={node}
-              active={combinedActiveState}
+              active={useActiveColor}
               selected={isSelected}
             />
           )}
@@ -311,7 +287,7 @@ export const Node: FC<NodeProps> = ({
       id,
       color,
       nodeSize,
-      combinedActiveState,
+      useActiveColor,
       selectionOpacity,
       animated,
       isSelected,
@@ -333,7 +309,8 @@ export const Node: FC<NodeProps> = ({
               stroke={theme.node.label.stroke}
               active={isSelected || active || isDraggingCurrent || isActive}
               color={
-                isSelected || active || isDraggingCurrent || isActive
+                // Color changes only on hover/drag, not selection
+                active || isDraggingCurrent || isActive
                   ? theme.node.label.activeColor
                   : theme.node.label.color
               }
@@ -349,7 +326,8 @@ export const Node: FC<NodeProps> = ({
                 stroke={theme.node.subLabel?.stroke}
                 active={isSelected || active || isDraggingCurrent || isActive}
                 color={
-                  isSelected || active || isDraggingCurrent || isActive
+                  // Color changes only on hover/drag, not selection
+                  active || isDraggingCurrent || isActive
                     ? theme.node.subLabel?.activeColor
                     : theme.node.subLabel?.color
                 }

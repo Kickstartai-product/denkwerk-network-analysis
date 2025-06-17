@@ -181,6 +181,7 @@ export const MainContent = ({
         loading={loading}
         error={error}
         selectedNodeId={selectedNodeId}
+        selectedEdge={selectedEdge}
         onNodeSelect={handleNodeSelect}
         onEdgeClick={handleEdgeSelect}
         showRelationships={showRelationships}

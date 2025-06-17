@@ -31,6 +31,10 @@ export interface GraphState {
   selections?: string[];
   // The node that is currently hovered, used to disable cluster dragging
   hoveredNodeId?: string;
+  // State to track if any node is currently being hovered over
+  isNodeHovered?: boolean; // -> Add this line
+  // ADDED: State to track the selected edge ID
+  selectedEdgeId?: string | null;
   edgeContextMenus?: Set<string>;
   setEdgeContextMenus: (edges: Set<string>) => void;
   edgeMeshes: Array<Mesh<BufferGeometry>>;
@@ -47,6 +51,10 @@ export interface GraphState {
   removeDraggingId: (id: string) => void;
   setActives: (actives: string[]) => void;
   setSelections: (selections: string[]) => void;
+  // Action to set the hover state
+  setIsNodeHovered: (isHovered: boolean) => void; // -> Add this line
+  // ADDED: Action to set the selected edge ID
+  setSelectedEdgeId: (id: string | null) => void;
   setHoveredNodeId: (hoveredNodeId: string | null) => void;
   setNodes: (nodes: InternalGraphNode[]) => void;
   setEdges: (edges: InternalGraphEdge[]) => void;
@@ -85,6 +93,9 @@ export const createStore = ({
     edgeMeshes: [],
     selections,
     hoveredNodeId: null,
+    isNodeHovered: false, // -> Add this line
+    // ADDED: Initial state for selectedEdgeId
+    selectedEdgeId: null,
     drags: {},
     graph: new Graph({ multi: true }),
     setTheme: theme => set(state => ({ ...state, theme })),
@@ -106,8 +117,12 @@ export const createStore = ({
       })),
     setActives: actives => set(state => ({ ...state, actives })),
     setSelections: selections => set(state => ({ ...state, selections })),
+    // ADDED: The setter function for selectedEdgeId
+    setSelectedEdgeId: id => set({ selectedEdgeId: id }),
     setHoveredNodeId: hoveredNodeId =>
       set(state => ({ ...state, hoveredNodeId })),
+    // The setter function for the node hover state
+    setIsNodeHovered: isHovered => set({ isNodeHovered: isHovered }), // -> Add this line
     setNodes: nodes =>
       set(state => ({
         ...state,

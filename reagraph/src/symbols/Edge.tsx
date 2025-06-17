@@ -20,7 +20,7 @@ import { useHoverIntent } from '../utils/useHoverIntent';
 import { Euler, Vector3 } from 'three';
 import { ThreeEvent } from '@react-three/fiber';
 
-// --- Mappings for Edge Coloration (No Changes Here) ---
+// ... (Mappings and other constants remain the same)
 const THREAT_TOPIC_TO_CATEGORY: Record<string, string> = {
     'Overstroming zee': 'Ecologisch',
     'Pandemie door een mens overdraagbaar virus': 'Gezondheid',
@@ -109,7 +109,6 @@ const CATEGORY_COLORS: Record<string, string> = {
   'Gezondheid': '#e42259'
 };
 const DEFAULT_EDGE_COLOR = '#D3D3D3';
-
 const getNodeCategorizedColor = (node: InternalGraphNode, defaultColor: string): string => {
   if (node && typeof node.id === 'string') {
     const category = THREAT_TOPIC_TO_CATEGORY_LOWER[node.id.toLowerCase()];
@@ -134,9 +133,7 @@ export interface EdgeProps {
 }
 
 const LABEL_PLACEMENT_OFFSET = 3;
-
-// --- ADDED: Define a hover color ---
-const HOVER_COLOR = 'red';
+const HOVER_COLOR = '#FF8C42';
 
 export const Edge: FC<EdgeProps> = ({
   animated,
@@ -154,10 +151,14 @@ export const Edge: FC<EdgeProps> = ({
 }) => {
   const theme = useStore(state => state.theme);
   const isDragging = useStore(state => state.draggingIds.length > 0);
+  // -> Add this line to get the hover state
+  const isNodeHovered = useStore(state => state.isNodeHovered);
+  const edges = useStore(state => state.edges);
+  const center = useStore(state => state.centerPosition);
   const [active, setActive] = useState<boolean>(false);
   const [menuVisible, setMenuVisible] = useState<boolean>(false);
 
-  const edges = useStore(state => state.edges);
+  // ... (no changes in the middle of the component)
   const edge = edges.find(e => e.id === id);
   if (!edge) return null;
 
@@ -203,44 +204,27 @@ export const Edge: FC<EdgeProps> = ({
     return newMidPoint;
   }, [from.position, to.position, labelOffset, labelPlacement, curved, curve]);
 
-const isSelected = useStore(state => state.selections?.includes(id));
-const hasSelections = useStore(state => !!state.selections?.length);
-const isActive = useStore(state => state.actives?.includes(id));
-const center = useStore(state => state.centerPosition);
-const selections = useStore(state => state.selections);
+  // Selections are now driven by the central `selections` array in the store.
+  const isSelected = useStore(state => state.selections?.includes(id));
+  const hasSelection = useStore(state => state.selections?.length > 0);
 
-// Check if this edge connects to any selected node
-const edgeTouchesSelection = selections?.some(selectedId => 
-  edge.source === selectedId || edge.target === selectedId
-) || false;
-
-let selectionOpacity: number;
-const currentEdgeWeight = weight !== undefined && weight !== null ? Number(weight) : 1;
-
-// Apply the logic based on selections
-if (!hasSelections || edgeTouchesSelection) {
-  // Follow switch logic when no selections OR edge touches a selected node
-  let baseOpacity: number;
-  switch (currentEdgeWeight) {
-    case 1: baseOpacity = 0.1; break;
-    case 3: baseOpacity = 0.2; break;
-    case 9: baseOpacity = 0.3; break;
-    case 27: baseOpacity = 0.5; break;
-    case 81: baseOpacity = 0.8; break;
-    default: baseOpacity = theme.edge.opacity; break;
-  }
-  
-  // Boost opacity if edge touches selection and there are selections
-  if (hasSelections && edgeTouchesSelection) {
-    const gap = 1 - baseOpacity;
-    selectionOpacity = baseOpacity + (gap * 0.5);
-  } else {
-    selectionOpacity = baseOpacity;
-  }
-} else {
-  // Has selections but edge doesn't touch any selected node
-  selectionOpacity = 0;
-}
+  const selectionOpacity = useMemo(() => {
+    // If any node or edge is selected, fade out non-selected items.
+    if (hasSelection) {
+      return isSelected ? 1 : 0.1;
+    } else {
+      // When no selections, calculate opacity based on weight.
+      const currentEdgeWeight = weight !== undefined && weight !== null ? Number(weight) : 1;
+      switch (currentEdgeWeight) {
+        case 1: return 0.1;
+        case 3: return 0.2;
+        case 9: return 0.3;
+        case 27: return 0.5;
+        case 81: return 0.8;
+        default: return theme.edge.opacity;
+      }
+    }
+  }, [hasSelection, isSelected, weight, theme.edge.opacity]);
 
   const [{ labelPosition }] = useSpring(() => ({
     from: { labelPosition: center ? [center.x, center.y, center.z] : [0, 0, 0] },
@@ -252,27 +236,29 @@ if (!hasSelections || edgeTouchesSelection) {
     labelPlacement === 'natural' ? 0 : Math.atan((to.position.y - from.position.y) / (to.position.x - from.position.x))
   ), [to.position.x, to.position.y, from.position.x, from.position.y, labelPlacement]);
 
-  useCursor(active && !isDragging && !!onClick, 'pointer');
+
+  // -> Modify the useCursor hook to respect the hover state
+  useCursor(active && !isDragging && !!onClick && !isNodeHovered, 'pointer');
+
   const { pointerOver, pointerOut } = useHoverIntent({
     disabled,
     onPointerOver: (event) => { setActive(true); onPointerOver?.(edge, event); },
     onPointerOut: (event) => { setActive(false); onPointerOut?.(edge, event); }
   });
 
+  // ...
   const arrowComponent = useMemo(() => arrowPlacement !== 'none' && (
     <Arrow
       animated={false}
-      // --- MODIFIED: Use hover color if active, otherwise use the target node color ---
       color={active ? HOVER_COLOR : targetNodeColor}
       length={arrowLength}
-      opacity={selectionOpacity}
+      opacity={active ? 1 : selectionOpacity}
       position={arrowPosition}
       rotation={arrowRotation}
       size={arrowSize}
       onActive={setActive}
       onContextMenu={() => { if (!disabled) { setMenuVisible(true); onContextMenu?.(edge); }}}
     />
-    // --- MODIFIED: Added `active` to the dependency array to ensure this re-renders on hover ---
   ), [animated, active, targetNodeColor, arrowLength, arrowPlacement, arrowPosition, arrowRotation, arrowSize, disabled, edge, onContextMenu, selectionOpacity]);
 
   const labelComponent = useMemo(() => labelVisible && label && (
@@ -282,19 +268,27 @@ if (!hasSelections || edgeTouchesSelection) {
         ellipsis={15}
         fontUrl={labelFontUrl}
         stroke={theme.edge.label.stroke}
-        color={ isSelected || active || isActive ? theme.edge.label.activeColor : theme.edge.label.color }
-        opacity={selectionOpacity}
+        color={ isSelected || active ? theme.edge.label.activeColor : theme.edge.label.color }
+        opacity={active ? 1 : selectionOpacity}
         fontSize={theme.edge.label.fontSize}
         rotation={labelRotation}
       />
     </a.group>
-  ), [active, disabled, edge, isActive, isSelected, label, labelFontUrl, labelPosition, labelRotation, labelVisible, onContextMenu, pointerOut, pointerOver, selectionOpacity, theme.edge.label.activeColor, theme.edge.label.color, theme.edge.label.fontSize, theme.edge.label.stroke]);
-
+  ), [active, disabled, edge, isSelected, label, labelFontUrl, labelPosition, labelRotation, labelVisible, onContextMenu, pointerOut, pointerOver, selectionOpacity, theme.edge.label.activeColor, theme.edge.label.color, theme.edge.label.fontSize, theme.edge.label.stroke]);
+  
   const menuComponent = useMemo(() => menuVisible && contextMenu && (
     <Html prepend center position={midPoint}>
       {contextMenu({ data: edge, onClose: () => setMenuVisible(false) })}
     </Html>
   ), [menuVisible, contextMenu, midPoint, edge]);
+
+  const handleEdgeClick = (event: ThreeEvent<MouseEvent>) => {
+    // -> Restore the logic but add a check for isNodeHovered
+    if (disabled || isNodeHovered) return;
+
+    event.stopPropagation();
+    onClick?.(edge, event);
+  };
 
   return (
     <group>
@@ -304,12 +298,12 @@ if (!hasSelections || edgeTouchesSelection) {
         curved={curved}
         curveOffset={curveOffset}
         animated={false}
-        opacity={selectionOpacity}
+        opacity={active ? 1 : selectionOpacity}
         size={size}
-        // --- MODIFIED: Use hover color if active, otherwise use the original node colors ---
         sourceColor={active ? HOVER_COLOR : sourceNodeColor}
         targetColor={active ? HOVER_COLOR : targetNodeColor}
-        onClick={event => { if (!disabled) onClick?.(edge, event); }}
+        // -> Restore the onClick handler
+        onClick={handleEdgeClick}
         onPointerOver={pointerOver}
         onPointerOut={pointerOut}
         onContextMenu={() => { if (!disabled) { setMenuVisible(true); onContextMenu?.(edge); }}}

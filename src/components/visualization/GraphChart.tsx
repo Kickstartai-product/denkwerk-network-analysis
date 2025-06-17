@@ -105,17 +105,17 @@ const denkWerkTheme = {
   ...lightTheme,
   node: {
     ...lightTheme.node,
-    activeFill: 'rgb(0,168,120)',
-    label: { ...lightTheme.node.label, activeColor: 'rgb(0,168,120)' },
+    activeFill: '#FF8C42',
+    label: { ...lightTheme.node.label, activeColor: '#FF8C42' },
   },
   edge: {
     ...lightTheme.edge,
-    activeStroke: 'rgb(0,168,120)',
-    activeFill: 'rgb(0,168,120)',
+    activeStroke: '#FF8C42',
+    activeFill: '#FF8C42',
     opacity: 0.5,
   },
-  arrow: { ...lightTheme.arrow, activeFill: 'rgb(0,168,120)' },
-  ring: { ...lightTheme.ring, activeFill: 'rgb(0,168,120)' },
+  arrow: { ...lightTheme.arrow, activeFill: '#FF8C42' },
+  ring: { ...lightTheme.ring, activeFill: '#FF8C42' },
   cluster: null as any,
 };
 
@@ -135,7 +135,8 @@ interface GraphChartProps {
   loading?: boolean;
   error?: string | null;
   selectedNodeId: string | null;
-  shortNodeDescriptions: Record<string, string>; // <-- ADDED PROP
+  selectedEdge: Edge | null;
+  shortNodeDescriptions: Record<string, string>;
   onNodeSelect: (nodeId: string | null) => void;
   onEdgeClick?: (edge: Edge | null) => void;
   showRelationships?: boolean;
@@ -177,7 +178,8 @@ const GraphChart = forwardRef<GraphChartRef, GraphChartProps>(
     loading,
     error,
     selectedNodeId,
-    shortNodeDescriptions, // <-- DESTRUCTURED PROP
+    selectedEdge,
+    shortNodeDescriptions,
     onNodeSelect,
     onEdgeClick,
     showRelationships = false,
@@ -197,7 +199,6 @@ const GraphChart = forwardRef<GraphChartRef, GraphChartProps>(
         .map(node => {
           const category = node.category || 'unknown';
           const color = categoryColors[category] || categoryColors.unknown;
-          // Use the passed-in descriptions
           const displayLabel = shortNodeDescriptions[node.id] || node.label || node.id;
           return { ...node, label: displayLabel, fill: color, color: color, data: { ...(node.data || {}), category: category } };
         });
@@ -338,21 +339,37 @@ const GraphChart = forwardRef<GraphChartRef, GraphChartProps>(
     }, [edges, edgeWeightCutoff, useWeightBasedEdgeSize, filteredNodeIds]);
 
     const { selections, actives, clearSelections, setSelections } = useSelection({
-      ref: graphRef, nodes: processedNodes, edges: processedEdges,
+      ref: graphRef,
+      nodes: processedNodes,
+      edges: processedEdges,
       pathSelectionType: showRelationships ? 'all' : 'direct',
-      selections: selectedNodeId ? [selectedNodeId] : [],
+      selections: selectedNodeId ? [selectedNodeId] : (selectedEdge ? [selectedEdge.id] : []),
     });
+
+    const processedEdgeIds = useMemo(() => new Set(processedEdges.map(edge => edge.id)), [processedEdges]);
 
     useEffect(() => {
       if (selectedNodeId && filteredNodeIds.has(selectedNodeId) && !selections.includes(selectedNodeId)) {
         setSelections([selectedNodeId]);
-      } else if (!selectedNodeId && selections.length > 0) {
+      } else if (!selectedNodeId && !selectedEdge && selections.length > 0) {
         clearSelections();
       } else if (selectedNodeId && !filteredNodeIds.has(selectedNodeId) && selections.includes(selectedNodeId)) {
         clearSelections();
         onNodeSelect(null);
       }
-    }, [selectedNodeId, selections, clearSelections, setSelections, filteredNodeIds, onNodeSelect]);
+    }, [selectedNodeId, selectedEdge, selections, clearSelections, setSelections, filteredNodeIds, onNodeSelect]);
+
+    useEffect(() => {
+      if (selectedEdge && processedEdgeIds.has(selectedEdge.id) && !selections.includes(selectedEdge.id)) {
+        setSelections([selectedEdge.id]);
+      } else if (!selectedEdge && !selectedNodeId && selections.length > 0) {
+        clearSelections();
+      } else if (selectedEdge && !processedEdgeIds.has(selectedEdge.id) && selections.includes(selectedEdge.id)) {
+        clearSelections();
+        if (onEdgeClick) onEdgeClick(null);
+      }
+    }, [selectedEdge, selectedNodeId, selections, clearSelections, setSelections, processedEdgeIds, onEdgeClick]);
+
 
     useEffect(() => {
       if (graphRef.current) {
@@ -391,13 +408,21 @@ const GraphChart = forwardRef<GraphChartRef, GraphChartProps>(
 
     const handleEdgeClick = (edge: Edge) => {
       onNodeSelect(null);
-      if (onEdgeClick) onEdgeClick(edge);
+      if (onEdgeClick) {
+        onEdgeClick(edge.id === selectedEdge?.id ? null : edge);
+      }
     };
 
     const handleCanvasClick = () => {
       onNodeSelect(null);
-      if (onEdgeClick) onEdgeClick(null);
+      if (onEdgeClick){
+        onEdgeClick(null);
+      }
     };
+
+    useEffect(() => {
+      console.log('Selections changed:', selections);
+    }, [selections]);
 
     if (loading) return <div className="flex h-full items-center justify-center"><div className="animate-pulse text-gray-500">Loading graph data...</div></div>;
     if (error) return <div className="flex h-full items-center justify-center"><div className="text-red-500">Error loading graph: {error}</div></div>;
