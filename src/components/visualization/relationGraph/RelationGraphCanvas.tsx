@@ -7,6 +7,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { shortNodeDescriptions } from '../shortNodeDescriptions'; // <-- 1. IMPORT ADDED
 
 // Define types for our enhanced network data
 export interface Node {
@@ -37,7 +38,7 @@ export interface Edge {
   weight: number;
   citaat_relaties: any[];
   raw_count: number;
-  [key: string]: any;
+  [key:string]: any;
 }
 
 export const categoryColors: Record<string, string> = {
@@ -97,7 +98,7 @@ const renderCitationParts = (citationText: string) => {
 
 const CitationPopup = ({ edge, onClose }: { edge: Edge; onClose: () => void; }) => {
     if (!edge) return null;
-  
+
     return (
       <div className="absolute inset-0 flex items-center justify-center p-4 bg-gray-500 bg-opacity-20" onClick={onClose}>
         <div className="bg-white rounded-xl shadow-2xl p-6 w-full max-w-2xl max-h-[540px] flex flex-col" onClick={e => e.stopPropagation()}>
@@ -105,7 +106,7 @@ const CitationPopup = ({ edge, onClose }: { edge: Edge; onClose: () => void; }) 
             <h2 className="text-xl font-semibold text-gray-800">Representatieve citaten</h2>
             <button onClick={onClose} className="text-2xl font-light text-gray-500 hover:text-gray-900 leading-none">&times;</button>
           </div>
-  
+
           <div className="flex-1 overflow-y-auto pr-2 -mr-2 space-y-4">
             {edge.citaat_relaties && edge.citaat_relaties.length > 0 ? (
               edge.citaat_relaties.map((citation, index) => (
@@ -147,14 +148,13 @@ const CitationPopup = ({ edge, onClose }: { edge: Edge; onClose: () => void; }) 
 export const RelationGraphCanvas = ({ nodes, edges }: RelationGraphCanvasProps) => {
   const [selectedThreat, setSelectedThreat] = useState<string>('polarisatie rond complottheorieën');
   const [selectedEdge, setSelectedEdge] = useState<Edge | null>(null);
-  const [hasMounted, setHasMounted] = useState(false); // <-- REVISED: Single state for readiness
+  const [hasMounted, setHasMounted] = useState(false);
   const graphRef = useRef<GraphCanvasRef | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
   const safeNodes = nodes || [];
   const safeEdges = edges || [];
 
-  // This effect runs once after the component mounts on the client.
   useEffect(() => {
     setHasMounted(true);
   }, []);
@@ -167,6 +167,12 @@ export const RelationGraphCanvas = ({ nodes, edges }: RelationGraphCanvasProps) 
     });
     return safeNodes.filter(node => nodesWithOutgoing.has(node.id));
   }, [safeNodes, safeEdges]);
+
+  // <-- 2. NEW MEMO to get the short description for the selected node
+  const selectedThreatDisplayLabel = useMemo(() => {
+    if (!selectedThreat) return null;
+    return shortNodeDescriptions[selectedThreat] || selectedThreat;
+  }, [selectedThreat]);
 
   const { filteredNodes, filteredEdges } = useMemo(() => {
     if (safeNodes.length === 0) {
@@ -211,7 +217,8 @@ export const RelationGraphCanvas = ({ nodes, edges }: RelationGraphCanvasProps) 
     const processedNodes = relevantNodes.map(node => {
       const category = node.category || 'unknown';
       const color = categoryColors[category] || '#A9A9A9';
-      return { ...node, fill: color, color: color };
+      const label = shortNodeDescriptions[node.id] || node.label || node.id;
+      return { ...node, fill: color, color: color, label: label};
     });
 
     const processedEdges = relevantEdges.map(edge => {
@@ -267,7 +274,10 @@ export const RelationGraphCanvas = ({ nodes, edges }: RelationGraphCanvasProps) 
         <div className="w-80">
           <Select value={selectedThreat} onValueChange={setSelectedThreat}>
             <SelectTrigger className="w-full bg-white border-gray-200 shadow-sm hover:border-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors">
-              <SelectValue placeholder="Selecteer een dreiging..." />
+              <SelectValue placeholder="Selecteer een dreiging...">
+                {/* <-- 3. USE the display label in the trigger */}
+                {selectedThreatDisplayLabel}
+              </SelectValue>
             </SelectTrigger>
             <SelectContent className="max-h-60">
               {nodesWithOutgoingConnections
@@ -279,7 +289,8 @@ export const RelationGraphCanvas = ({ nodes, edges }: RelationGraphCanvasProps) 
                     className="hover:bg-gray-100 focus:bg-blue-50"
                   >
                     <div className="flex flex-col">
-                      <span className="font-medium">{node.label}</span>
+                       {/* <-- 4. USE the short description for the main label in the list */}
+                      <span className="font-medium">{shortNodeDescriptions[node.id] || node.label}</span>
                       {node.summary && (
                         <span className="text-xs text-gray-500 truncate max-w-60">
                           {node.summary}
