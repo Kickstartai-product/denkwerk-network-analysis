@@ -147,12 +147,20 @@ const CitationPopup = ({ edge, onClose }: { edge: Edge; onClose: () => void; }) 
 export const RelationGraphCanvas = ({ nodes, edges }: RelationGraphCanvasProps) => {
   const [selectedThreat, setSelectedThreat] = useState<string>('polarisatie rond complottheorieën');
   const [selectedEdge, setSelectedEdge] = useState<Edge | null>(null);
+  const [hasMounted, setHasMounted] = useState(false); // <-- REVISED: Single state for readiness
   const graphRef = useRef<GraphCanvasRef | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   const safeNodes = nodes || [];
   const safeEdges = edges || [];
 
+  // This effect runs once after the component mounts on the client.
+  useEffect(() => {
+    setHasMounted(true);
+  }, []);
+
   const nodesWithOutgoingConnections = useMemo(() => {
+    if (safeNodes.length === 0) return [];
     const nodesWithOutgoing = new Set<string>();
     safeEdges.forEach(edge => {
       nodesWithOutgoing.add(edge.source);
@@ -161,8 +169,12 @@ export const RelationGraphCanvas = ({ nodes, edges }: RelationGraphCanvasProps) 
   }, [safeNodes, safeEdges]);
 
   const { filteredNodes, filteredEdges } = useMemo(() => {
-    let relevantNodes = safeNodes;
-    let relevantEdges = safeEdges;
+    if (safeNodes.length === 0) {
+      return { filteredNodes: [], filteredEdges: [] };
+    }
+
+    let relevantNodes: Node[];
+    let relevantEdges: Edge[];
 
     if (selectedThreat) {
       const firstOrderConnections = safeEdges
@@ -191,6 +203,9 @@ export const RelationGraphCanvas = ({ nodes, edges }: RelationGraphCanvasProps) 
 
       relevantNodes = safeNodes.filter(node => relevantNodeIds.has(node.id));
       relevantEdges = [...firstOrderConnections, ...secondOrderConnections];
+    } else {
+      relevantNodes = [];
+      relevantEdges = [];
     }
 
     const processedNodes = relevantNodes.map(node => {
@@ -208,18 +223,43 @@ export const RelationGraphCanvas = ({ nodes, edges }: RelationGraphCanvasProps) 
     return { filteredNodes: processedNodes, filteredEdges: processedEdges };
   }, [selectedThreat, safeNodes, safeEdges]);
 
+  // Delay fit operation to ensure graph is fully rendered and layout has settled.
   useEffect(() => {
-    if (graphRef.current && selectedThreat) {
+    if (hasMounted && graphRef.current && filteredNodes.length > 0) {
       const timer = setTimeout(() => {
-        graphRef.current?.fitNodesInView();
-      }, 100);
+        try {
+          graphRef.current?.fitNodesInView();
+        } catch (error) {
+          console.warn('Failed to fit nodes in view:', error);
+        }
+      }, 200); // This delay is for layout physics, which is a valid use case.
       return () => clearTimeout(timer);
     }
-  }, [selectedThreat, filteredNodes]);
+  }, [hasMounted, selectedThreat, filteredNodes]);
 
   const handleEdgeClick = useCallback((edge: Edge) => {
     setSelectedEdge(current => (current && current.id === edge.id ? null : edge));
   }, []);
+
+  // REVISED: Show loading state until the component has mounted and received data.
+  if (!hasMounted || nodes.length === 0) {
+    return (
+      <div className="w-full space-y-4">
+        <div className="flex items-center justify-center">
+          <div className="w-80">
+            <div className="h-10 bg-gray-200 rounded animate-pulse"></div>
+          </div>
+        </div>
+        <div className="w-full bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
+          <div style={{ width: '100%', height: '600px', position: 'relative' }}>
+            <div className="flex items-center justify-center h-full">
+              <div className="text-gray-500">Laden van netwerkvisualisatie...</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full space-y-4">
@@ -254,16 +294,23 @@ export const RelationGraphCanvas = ({ nodes, edges }: RelationGraphCanvasProps) 
       </div>
 
       <div className="w-full bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
-        <div style={{ width: '100%', height: '600px', position: 'relative' }}>
-          <GraphCanvas
-            ref={graphRef}
-            nodes={filteredNodes}
-            edges={filteredEdges}
-            theme={theme}
-            cameraMode="rotate"
-            layoutType="hierarchicalLr"
-            onEdgeClick={handleEdgeClick as any}
-          />
+        <div ref={containerRef} style={{ width: '100%', height: '600px', position: 'relative' }}>
+          {/* REVISED: Render GraphCanvas only if there are nodes to display */}
+          {filteredNodes.length > 0 ? (
+            <GraphCanvas
+              ref={graphRef}
+              nodes={filteredNodes}
+              edges={filteredEdges}
+              theme={theme}
+              cameraMode="rotate"
+              layoutType="hierarchicalLr"
+              onEdgeClick={handleEdgeClick as any}
+            />
+          ) : (
+             <div className="flex items-center justify-center h-full">
+                <div className="text-gray-500">Geen data om te visualiseren voor deze selectie.</div>
+            </div>
+          )}
           {selectedEdge && (
             <CitationPopup
               edge={selectedEdge}
