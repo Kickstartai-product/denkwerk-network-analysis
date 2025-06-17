@@ -9,12 +9,12 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { ArrowUpDown, Download } from 'lucide-react';
+import { ArrowUpDown } from 'lucide-react';
 import type { Node } from './networkGraph/networkService'; // Updated import path
 import type { CentralityMetric } from './MainContent'; // Import the type from MainContent
 
 // Define the columns we want to display and sort by
-type SortableColumn = CentralityMetric | 'label' | 'nr_docs' | 'nr_citations';
+type SortableColumn = CentralityMetric | 'label' | 'nr_docs';
 
 interface ThreatTableProps {
   nodes: Node[];
@@ -34,18 +34,17 @@ const formatScore = (score: number | null | undefined): string => {
 // Mapping for user-friendly column names
 const columnNames: Record<SortableColumn, string> = {
   label: 'Dreiging',
-  nr_docs: 'Documenten',
-  nr_citations: 'Citaties',
-  eigen_centrality: 'Eigen Centrality',
-  eigen_centrality_in: 'Prestige (In)',
-  eigen_centrality_out: 'Importance (Out)',
-  cross_category_eigen_centrality: 'Cross-Cat Centrality',
-  cross_category_eigen_centrality_in: 'Cross-Cat Prestige',
-  cross_category_eigen_centrality_out: 'Cross-Cat Importance',
+  nr_docs: 'Aantal citatiten',
+  eigen_centrality: 'Ongerichte centraliteit',
+  eigen_centrality_in: 'Inkomende centraliteit',
+  eigen_centrality_out: 'Uitgaande centraliteit',
+  cross_category_eigen_centrality: 'Categorie-overschrijdend ongericht',
+  cross_category_eigen_centrality_in: 'Categorie-overschrijdend inkomend',
+  cross_category_eigen_centrality_out: 'Categorie-overschrijdend uitgaand',
 };
 
 export const ThreatTable = ({ nodes }: ThreatTableProps) => {
-  const [sortColumn, setSortColumn] = useState<SortableColumn>('eigen_centrality_out'); // Default sort
+  const [sortColumn, setSortColumn] = useState<SortableColumn>('cross_category_eigen_centrality_out'); // Default sort
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
 
   const sortedNodes = useMemo(() => {
@@ -61,10 +60,6 @@ export const ThreatTable = ({ nodes }: ThreatTableProps) => {
         case 'nr_docs':
           valA = a.nr_docs ?? 0;
           valB = b.nr_docs ?? 0;
-          break;
-        case 'nr_citations':
-          valA = a.nr_citations ?? 0;
-          valB = b.nr_citations ?? 0;
           break;
         default: // Centrality metrics
           valA = getCentralityValue(a, sortColumn);
@@ -95,60 +90,6 @@ export const ThreatTable = ({ nodes }: ThreatTableProps) => {
     }
   };
 
-  const exportToCSV = () => {
-    // Define the columns to export in the order they should appear
-    const headers: SortableColumn[] = [
-      'label',
-      'nr_docs',
-      'nr_citations',
-      'eigen_centrality',
-      'eigen_centrality_in',
-      'eigen_centrality_out',
-      'cross_category_eigen_centrality',
-      'cross_category_eigen_centrality_in',
-      'cross_category_eigen_centrality_out',
-    ];
-    const headerNames = headers.map(h => columnNames[h]);
-
-    const csvRows = [
-      headerNames.join(','), // Header row
-      ...sortedNodes.map(node => {
-        const rowValues = headers.map(header => {
-          let value: string | number | null | undefined;
-          switch (header) {
-            case 'label': value = node.label; break;
-            case 'nr_docs': value = node.nr_docs; break;
-            case 'nr_citations': value = node.nr_citations; break;
-            default: value = getCentralityValue(node, header); break;
-          }
-          // Format numbers, handle null/undefined, escape commas in label
-          if (typeof value === 'string') {
-             return `"${value.replace(/"/g, '""')}"`; // Escape double quotes
-          } else if (typeof value === 'number') {
-            return ['nr_docs', 'nr_citations'].includes(header) ? value.toString() : formatScore(value);
-          } else {
-            return 'N/A';
-          }
-        });
-        return rowValues.join(',');
-      })
-    ];
-
-    const csvContent = csvRows.join('\n');
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    if (link.download !== undefined) {
-      const url = URL.createObjectURL(blob);
-      link.setAttribute('href', url);
-      link.setAttribute('download', 'threat_rankings.csv');
-      link.style.visibility = 'hidden';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
-    }
-  };
-
   const renderSortIcon = (column: SortableColumn) => {
     if (sortColumn !== column) {
       return <ArrowUpDown className="ml-2 h-3 w-3 opacity-30" />;
@@ -161,8 +102,7 @@ export const ThreatTable = ({ nodes }: ThreatTableProps) => {
   // Define the columns to display in the table
   const displayColumns: SortableColumn[] = [
     'label',
-    'nr_docs', 
-    'nr_citations',
+    'nr_docs',
     'eigen_centrality',
     'eigen_centrality_in',
     'eigen_centrality_out',
@@ -173,12 +113,15 @@ export const ThreatTable = ({ nodes }: ThreatTableProps) => {
 
   return (
     <div className="p-4 h-full flex flex-col">
-      <div className="flex justify-between items-center mb-4">
-        <h4 className="text-lg font-semibold">Dreiging Ranglijst</h4>
-        <Button variant="outline" size="sm" onClick={exportToCSV}>
-          <Download className="mr-2 h-4 w-4" />
-          Export CSV
-        </Button>
+      <div className="mb-4">
+        <h4 className="text-lg font-semibold mb-2">Tabel centraliteitswaarden</h4>
+        <p className="text-sm text-gray-600 leading-relaxed">
+          Deze tabel toont verschillende centraliteitsmetrieken voor elke dreiging. In onze analyse gebruiken we de <strong>categorie-overschrijdende uitgaande centraliteit</strong>, 
+          berekend over 2 iteraties. Deze metriek identificeert dreigingen die veel invloed uitoefenen op dreigingen in andere categorieën.
+        </p>
+        <p className="text-sm text-gray-500 mt-2">
+          <strong>Let op:</strong> Deze waarden zijn bedoeld voor ordinale vergelijking (rangorde), niet voor absolute interpretatie. 
+        </p>
       </div>
       <div className="flex-grow overflow-auto border rounded-md">
         <Table>
@@ -205,7 +148,6 @@ export const ThreatTable = ({ nodes }: ThreatTableProps) => {
                 <TableRow key={node.id}>
                   <TableCell className="font-medium">{node.label}</TableCell>
                   <TableCell className="text-right">{node.nr_docs ?? 'N/A'}</TableCell>
-                  <TableCell className="text-right">{node.nr_citations ?? 'N/A'}</TableCell>
                   <TableCell className="text-right font-mono">{formatScore(getCentralityValue(node, 'eigen_centrality'))}</TableCell>
                   <TableCell className="text-right font-mono">{formatScore(getCentralityValue(node, 'eigen_centrality_in'))}</TableCell>
                   <TableCell className="text-right font-mono">{formatScore(getCentralityValue(node, 'eigen_centrality_out'))}</TableCell>

@@ -154,10 +154,6 @@ export const MainContent = ({
     return link || '#';
   };
 
-  const getTotalCitationsCount = (node: Node): number => {
-    return node.nr_citations || 0;
-  };
-
   const renderCitationParts = (citationText: string) => {
     if (!citationText.includes(" ||| ")) {
       return <div className="italic bg-muted/40 p-3 rounded text-sm text-left">"{citationText}"</div>;
@@ -216,12 +212,12 @@ export const MainContent = ({
                   <SheetTrigger asChild>
                     <Button variant="outline" size="sm" className="gap-1 px-3" disabled={loading || !!error || nodes.length === 0}>
                       <ListOrdered className="h-4 w-4" />
-                      <span>Ranglijst</span>
+                      <span>Centraliteitswaarden</span>
                     </Button>
                   </SheetTrigger>
                 </TooltipTrigger>
                 <TooltipContent>
-                  <p>Bekijk dreiging ranglijst & exporteer</p>
+                  <p>Bekijk exacte centraliteitswaarden</p>
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
